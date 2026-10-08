@@ -37,6 +37,37 @@ HCLOUD_TOKEN=... guile -L . deploy.scm
   `(output resource 'ipv4)` gives any other output.
 - `(destroy-stage "prod")` deletes everything in a stage.
 
+### Dry runs
+
+`(with-stage "prod" #:dry-run? #t ...)` runs the same code but changes
+nothing: it reads the real resources and reports what it would do.
+
+```
+chaudron: create hetzner-volume/data (dry run)
+chaudron: update hetzner-server/forge (volumes) (dry run)
+chaudron: delete hetzner-firewall/web (dry run)
+```
+
+Outputs of resources that do not exist yet are unknown, printed as
+`#<unknown hetzner-server/forge ipv4>`. `destroy-stage` takes `#:dry-run?`
+too.
+
+### Concurrency
+
+Resources are converged in order. To converge independent ones at the same
+time, wrap them in `concurrently`, which returns their values in order:
+
+```scheme
+(define-values (key ip data)
+  (concurrently
+   (hetzner-ssh-key "me" #:public-key-file "~/.ssh/id_ed25519.pub")
+   (hetzner-primary-ip "forge" #:location "fsn1")
+   (hetzner-volume "data" #:size 10 #:location "fsn1")))
+```
+
+Each expression runs in its own thread. If one fails, the others finish,
+then the error is raised, and the stage deletes nothing.
+
 ## Hetzner
 
 The token comes from `HCLOUD_TOKEN`, or from `(with-hetzner token body ...)`.

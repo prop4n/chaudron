@@ -1,7 +1,9 @@
 ;;; Resources and the providers that manage them.
 
 (define-module (chaudron resource)
+  #:use-module (ice-9 match)
   #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-9 gnu)
   #:export (make-provider
             provider?
             provider-kind
@@ -19,7 +21,8 @@
             resource-name
             resource-props
             resource-outputs
-            output))
+            output
+            unknown?))
 
 ;; A provider knows how to manage one kind of resource:
 ;;   CREATE  (name props) -> outputs
@@ -61,9 +64,25 @@
   (props resource-props)
   (outputs resource-outputs))
 
+;; The outputs of a resource that a dry run would create are not known yet.
+(define-record-type <unknown>
+  (make-unknown resource key)
+  unknown?
+  (resource unknown-resource)
+  (key unknown-key))
+
+(set-record-type-printer! <unknown>
+  (lambda (unknown port)
+    (let ((resource (unknown-resource unknown)))
+      (format port "#<unknown ~a/~a ~a>" (resource-kind resource)
+              (resource-name resource) (unknown-key unknown)))))
+
 (define (output resource key)
-  "Return the output KEY of RESOURCE, such as its 'id or 'ipv4."
-  (let ((pair (assq key (resource-outputs resource))))
-    (unless pair
-      (error "no such output" key (resource-name resource)))
-    (cdr pair)))
+  "Return the output KEY of RESOURCE, such as its 'id or 'ipv4.  During a
+dry run, the outputs of resources that do not exist yet are unknown."
+  (match (resource-outputs resource)
+    (#f (make-unknown resource key))
+    (outputs
+     (match (assq key outputs)
+       ((_ . value) value)
+       (#f (error "no such output" key (resource-name resource)))))))

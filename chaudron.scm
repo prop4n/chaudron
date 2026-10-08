@@ -1,6 +1,7 @@
 ;;; Chaudron: infrastructure as plain Guile programs.
 
 (define-module (chaudron)
+  #:use-module (chaudron concurrency)
   #:use-module (chaudron resource)
   #:use-module (chaudron state)
   #:use-module (chaudron stage)
@@ -19,4 +20,7 @@
                resource-props
                resource-outputs
                output
+               unknown?
+               concurrently
+               call-concurrently
                state-directory))
