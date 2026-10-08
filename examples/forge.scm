@@ -22,7 +22,7 @@
                                                  (getenv "HOME")
                                                  "/.ssh/id_ed25519.pub"))))
             (forge (hetzner-server "forge"
-                                   #:type "cx22"
+                                   #:type "cx23"
                                    #:location "fsn1"
                                    #:ssh-keys (list key))))
        (format #t "ssh root@~a~%" (output forge 'ipv4))))))

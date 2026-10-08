@@ -10,7 +10,7 @@ converges the real infrastructure right away and returns its outputs.
              (chaudron hetzner))
 
 (with-stage "prod"
-  (hetzner-server "forge" #:type "cx22" #:location "fsn1"))
+  (hetzner-server "forge" #:type "cx23" #:location "fsn1"))
 ```
 
 ```sh
@@ -37,7 +37,7 @@ HCLOUD_TOKEN=... guile -L . deploy.scm
 ```scheme
 (hetzner-ssh-key "me" #:public-key "ssh-ed25519 AAAA...")
 (hetzner-server "forge"
-                #:type "cx22"            ;changing it resizes in place
+                #:type "cx23"            ;changing it resizes in place
                 #:location "fsn1"        ;changing it replaces the server
                 #:image "debian-12"      ;idem
                 #:ssh-keys (list key))   ;idem
