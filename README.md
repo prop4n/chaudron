@@ -40,13 +40,18 @@ HCLOUD_TOKEN=... guile -L . deploy.scm
 ## Hetzner
 
 ```scheme
-(let* ((key (hetzner-ssh-key "me" #:public-key "ssh-ed25519 AAAA..."))
-       (web (hetzner-firewall "web"
-                              #:rules (list (allow-in 'tcp 22)
-                                            (allow-in 'tcp 443)
-                                            (allow-in 'tcp "8000-8100"
-                                                      #:from '("10.0.0.0/8"))
-                                            (allow-in 'icmp)))))
+(with-stage "prod"
+  (define key
+    (hetzner-ssh-key "me" #:public-key-file "~/.ssh/id_ed25519.pub"))
+
+  (define web
+    (hetzner-firewall "web"
+                      #:rules (list (allow-in 'tcp 22)
+                                    (allow-in 'tcp 443)
+                                    (allow-in 'tcp "8000-8100"
+                                              #:from '("10.0.0.0/8"))
+                                    (allow-in 'icmp))))
+
   (hetzner-server "forge"
                   #:type "cx23"              ;changing it resizes in place
                   #:firewalls (list web)     ;attached/detached in place

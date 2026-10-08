@@ -4,6 +4,7 @@
   #:use-module (chaudron resource)
   #:use-module (chaudron stage)
   #:use-module (chaudron hetzner api)
+  #:use-module (ice-9 textual-ports)
   #:export (hetzner-ssh-key))
 
 (define (ssh-key-path outputs)
@@ -44,10 +45,23 @@
                   #:delete delete-ssh-key
                   #:replace-on '(public-key))))
 
-(define* (hetzner-ssh-key resource-name #:key public-key (name resource-name))
-  "Declare an SSH key.  Changing PUBLIC-KEY replaces it."
-  (unless public-key
-    (error "hetzner-ssh-key: missing #:public-key" resource-name))
-  (ensure-resource ssh-key-provider resource-name
-                   `((name . ,name)
-                     (public-key . ,(string-trim-both public-key)))))
+(define (expand-home file)
+  (if (string-prefix? "~/" file)
+      (string-append (getenv "HOME") (string-drop file 1))
+      file))
+
+(define* (hetzner-ssh-key resource-name
+                          #:key public-key public-key-file (name resource-name))
+  "Declare an SSH key, given as a string with PUBLIC-KEY or read from
+PUBLIC-KEY-FILE, such as \"~/.ssh/id_ed25519.pub\".  Changing the key
+replaces it."
+  (let ((key (cond (public-key public-key)
+                   (public-key-file
+                    (call-with-input-file (expand-home public-key-file)
+                      get-string-all))
+                   (else
+                    (error "hetzner-ssh-key: missing #:public-key or \
+#:public-key-file" resource-name)))))
+    (ensure-resource ssh-key-provider resource-name
+                     `((name . ,name)
+                       (public-key . ,(string-trim-both key))))))

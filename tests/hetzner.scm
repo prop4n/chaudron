@@ -175,6 +175,18 @@
       (quietly (lambda () (with-stage "prod" #t)))
       (routes)))
 
+  (test-equal "reads the public key from a file"
+    "ssh-ed25519 BBBB"
+    (let ((file (string-append (state-directory) "/key.pub")))
+      (call-with-output-file file
+        (lambda (port) (display "ssh-ed25519 BBBB\n" port)))
+      (with-api (`(201 . (("ssh_key" . (("id" . 8))))))
+        (quietly
+         (lambda ()
+           (with-stage "files"
+             (hetzner-ssh-key "file" #:public-key-file file))))
+        (assoc-ref (body 0) "public_key"))))
+
   (test-equal "retries on server errors"
     '(("ok" . #t))
     (with-api ('(503 . #f) '(200 . (("ok" . #t))))
