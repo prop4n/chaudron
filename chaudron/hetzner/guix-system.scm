@@ -19,6 +19,7 @@
     (_ (error "no SSH host key for" address))))
 
 (define (deploy! props outputs)
+  (report "~a: deploying ~a" (assq-ref props 'address) (assq-ref props 'os))
   (call-with-temporary-file
    (lambda (file port)
      (pretty-print '(use-modules (gnu machine) (gnu machine ssh)) port)

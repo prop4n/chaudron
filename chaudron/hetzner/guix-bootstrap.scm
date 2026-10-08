@@ -15,10 +15,13 @@
     ;; Host keys change when the rescue system and Guix System boot.
     "-o" "StrictHostKeyChecking=no" "-o" "UserKnownHostsFile=/dev/null"
     "-o" "LogLevel=ERROR" "-o" "ConnectTimeout=10"
+    ;; Fail rather than ask for a password.
+    "-o" "BatchMode=yes"
     ,(string-append "root@" address) ,@command))
 
 (define* (wait-for-ssh identity address #:optional (test "true"))
   "Wait until TEST, a shell command, succeeds over SSH on ADDRESS."
+  (report "~a: waiting for SSH" address)
   (let loop ((tries 0))
     (receive (status _) ((run-command) "ssh"
                          (ssh-arguments identity address test))
@@ -109,14 +112,17 @@ guix system init /tmp/bootstrap.scm /mnt
         (address (assq-ref props 'address))
         (identity (assq-ref props 'identity)))
     (report "~a: erasing its disk to install Guix System" address)
+    (report "~a: booting the rescue system" address)
     (resource-action "servers" server "enable_rescue"
                      `(("type" . "linux64")
                        ("ssh_keys" . ,(vector (assq-ref props 'ssh-key)))))
     (resource-action "servers" server "reset")
     (wait-for-ssh identity address)
+    (report "~a: installing Guix System, this takes a while" address)
     (invoke "ssh" (ssh-arguments identity address "bash" "-s")
             #:input (bootstrap-script (assq-ref props 'host-name)
                                       (assq-ref props 'server-type)))
+    (report "~a: rebooting into Guix System" address)
     (resource-action "servers" server "reboot")
     ;; Until it has rebooted, the rescue system may still answer.
     (wait-for-ssh identity address "test -e /run/current-system")))
