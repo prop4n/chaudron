@@ -68,14 +68,15 @@ props and outputs as a pair, or #f if it no longer exists."
      (report "~a no longer exists" id)
      #f)
     ((observed . outputs)
-     (for-each (match-lambda
-                 ((key . value)
-                  (unless (equal? value (assq-ref props key))
-                    (report "~a has drifted: ~a is ~s, expected ~s"
-                            id key value (assq-ref props key)))))
-               observed)
      (cons (map (match-lambda
-                  ((key . value) (or (assq key observed) (cons key value))))
+                  ((key . expected)
+                   (match (assq key observed)
+                     (#f (cons key expected))
+                     ((_ . actual)
+                      (unless (equal? actual expected)
+                        (report "~a has drifted: ~a is ~s, expected ~s"
+                                id key actual expected))
+                      (cons key actual)))))
                 props)
            outputs))))
 

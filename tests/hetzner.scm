@@ -4,47 +4,9 @@
              (chaudron hetzner)
              (chaudron hetzner api)
              (ice-9 exceptions)
-             (json)
              (srfi srfi-43)
-             (srfi srfi-64))
-
-(define %endpoint "https://api.hetzner.cloud/v1")
-
-(define requests '())                   ;(method path body headers)
-(define responses '())                  ;(status . json), consumed in order
-
-(define (fake-transport method url headers body)
-  (set! requests
-        (append requests
-                (list (list method
-                            (string-drop url (string-length %endpoint))
-                            (and body (json-string->scm body))
-                            headers))))
-  (let ((response (car responses)))
-    (set! responses (cdr responses))
-    (values (car response)
-            (and (cdr response) (scm->json-string (cdr response))))))
-
-(define-syntax-rule (with-api (response ...) body ...)
-  (begin
-    (set! requests '())
-    (set! responses (list response ...))
-    (parameterize ((hetzner-transport fake-transport)
-                   (hetzner-token "secret")
-                   (hetzner-sleep (const #t)))
-      body ...)))
-
-(define (routes)
-  (map (lambda (request) (list (car request) (cadr request))) requests))
-
-(define (body n)
-  (caddr (list-ref requests n)))
-
-(define (action id status)
-  `(("id" . ,id) ("status" . ,status)))
-
-(define (done id)
-  `(200 . (("action" . ,(action id "success")))))
+             (srfi srfi-64)
+             (tests fake-hetzner))
 
 (define %public-key "ssh-ed25519 AAAA moi@forge")
 
@@ -75,17 +37,7 @@
   '((GET "/ssh_keys/7") (GET "/firewalls/3") (GET "/servers/42")))
 
 (define-syntax-rule (with-reads (response ...) body ...)
-  (begin
-    (set! requests '())
-    (set! responses (append reads (list response ...)))
-    (parameterize ((hetzner-transport fake-transport)
-                   (hetzner-token "secret")
-                   (hetzner-sleep (const #t)))
-      body ...)))
-
-(define (quietly thunk)
-  (parameterize ((current-error-port (%make-void-port "w")))
-    (thunk)))
+  (call-with-api (append reads (list response ...)) (lambda () body ...)))
 
 (test-begin "hetzner")
 
@@ -120,7 +72,7 @@
 
   (test-equal "authenticates with the token"
     '(bearer secret)
-    (assq-ref (cadddr (car requests)) 'authorization))
+    (assq-ref (cadddr (car (recorded-requests))) 'authorization))
 
   (test-equal "only reads when nothing changed"
     read-routes

@@ -1,7 +1,6 @@
 ;;; Minimal client for the Hetzner Cloud API.
 
 (define-module (chaudron hetzner api)
-  #:use-module (chaudron stage)
   #:use-module (ice-9 exceptions)
   #:use-module (ice-9 match)
   #:use-module (ice-9 receive)
@@ -20,7 +19,7 @@
             wait-for-action
             wait-for-actions
             json-ref
-            stage-labels
+            json-list
 
             hetzner-error?
             hetzner-error-status
@@ -28,6 +27,7 @@
 
 (define %endpoint "https://api.hetzner.cloud/v1")
 (define %attempts 3)
+(define %action-timeout 600)            ;seconds
 
 ;; API token; when unset, $HCLOUD_TOKEN is used.
 (define hetzner-token (make-parameter #f))
@@ -50,6 +50,12 @@
   "Follow KEYS through nested JSON objects; return #f if one is missing."
   (fold (lambda (key json) (and (pair? json) (assoc-ref json key)))
         json keys))
+
+(define (json-list json . keys)
+  "Like `json-ref', but return the JSON array found as a list."
+  (match (apply json-ref json keys)
+    ((? vector? vector) (vector->list vector))
+    (_ '())))
 
 ;;; Errors.
 
@@ -120,23 +126,27 @@ Rate limits and server errors are retried with exponential backoff."
   "DELETE PATH and return the response, or #f if it was already gone."
   (unless-gone (lambda () (hetzner-request 'DELETE path))))
 
-(define (stage-labels)
-  "Labels marking a resource as managed by chaudron in the current stage."
-  `(("chaudron/stage" . ,(stage-name (current-stage)))))
-
 (define (wait-for-action action)
-  "Poll ACTION until it completes; raise an error if it fails."
-  (let loop ((action action))
+  "Poll ACTION until it completes; raise an error if it fails or takes more
+than ten minutes.  Do nothing if ACTION is #f or null."
+  (let loop ((action action) (seconds 0))
     (match (json-ref action "status")
+      (#f action)
       ("success" action)
       ("error" (raise-hetzner-error #f (json-ref action "error")))
       (_
+       (when (>= seconds %action-timeout)
+         (error "Hetzner action timed out" (json-ref action "command")))
        ((hetzner-sleep) 1)
        (loop (json-ref (hetzner-request
                         'GET (format #f "/actions/~a" (json-ref action "id")))
-                       "action"))))))
+                       "action")
+             (1+ seconds))))))
 
 (define (wait-for-actions response)
-  "Wait for every action listed under \"actions\" in RESPONSE."
+  "Wait for every action of RESPONSE, whether it has an \"action\", a list
+of \"actions\" or \"next_actions\"."
+  (wait-for-action (json-ref response "action"))
   (for-each wait-for-action
-            (vector->list (or (json-ref response "actions") #()))))
+            (append (json-list response "actions")
+                    (json-list response "next_actions"))))

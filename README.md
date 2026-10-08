@@ -39,6 +39,8 @@ HCLOUD_TOKEN=... guile -L . deploy.scm
 
 ## Hetzner
 
+The token comes from `HCLOUD_TOKEN`, or from `(with-hetzner token body ...)`.
+
 ```scheme
 (with-stage "prod"
   (define key
@@ -52,25 +54,58 @@ HCLOUD_TOKEN=... guile -L . deploy.scm
                                               #:from '("10.0.0.0/8"))
                                     (allow-in 'icmp))))
 
-  (hetzner-server "forge"
-                  #:type "cx23"              ;changing it resizes in place
-                  #:firewalls (list web)     ;attached/detached in place
-                  #:location "fsn1"          ;changing it replaces the server
-                  #:image "debian-12"        ;idem
-                  #:ssh-keys (list key)      ;only used at creation
-                  #:user-data "#cloud-config\npackages: [htop]\n")) ;idem
+  (define ip   (hetzner-primary-ip "forge" #:location "fsn1"))
+  (define data (hetzner-volume "data" #:size 20 #:location "fsn1"))
+  (define lan  (hetzner-network "lan" #:ip-range "10.0.0.0/16"))
+
+  (define forge
+    (hetzner-server "forge"
+                    #:type "cx23"
+                    #:location "fsn1"
+                    #:image "debian-12"
+                    #:ssh-keys (list key)
+                    #:firewalls (list web)
+                    #:ipv4 ip              ;keeps its address when replaced
+                    #:volumes (list data)  ;mounted under /mnt
+                    #:networks (list lan)
+                    #:user-data "#cloud-config\npackages: [htop]\n"
+                    #:backups? #t
+                    #:labels '(("role" . "forge"))
+                    #:protected? #t))
+
+  (hetzner-load-balancer "front"
+                         #:location "fsn1"
+                         #:services (list (forward 'http 80 #:to 8080))
+                         #:targets (list forge)
+                         #:network lan)
+
+  (hetzner-snapshot "forge-base" #:server forge))
 ```
 
-The token comes from `HCLOUD_TOKEN`, or from `(with-hetzner token body ...)`.
-
-| Resource | Outputs | Checked for drift |
+| Resource | Outputs | Changes that replace it |
 |---|---|---|
-| `hetzner-ssh-key` | `id`, `fingerprint` | existence, name |
-| `hetzner-firewall` | `id` | existence, name |
-| `hetzner-server` | `id`, `ipv4`, `ipv6` | existence, name, type |
+| `hetzner-ssh-key` | `id`, `fingerprint` | public key |
+| `hetzner-firewall` | `id` | — |
+| `hetzner-server` | `id`, `ipv4`, `ipv6`, `private-ipv4` | location, image |
+| `hetzner-primary-ip` | `id`, `ip` | type, location |
+| `hetzner-volume` | `id`, `linux-device` | location, format |
+| `hetzner-network` | `id` | zone |
+| `hetzner-load-balancer` | `id`, `ipv4`, `ipv6` | location, network |
+| `hetzner-snapshot` | `id` | server |
 
-Firewalls only filter incoming traffic; outgoing traffic is always allowed.
-`user-data` is stored in the state file: do not put secrets in it.
+Everything else changes in place. A few things to know:
+
+- Replacing a server loses the data on its disk, but not its volumes, and
+  not its address if it has a primary IP.
+- Changing a server's type or primary IPs powers it off for a moment.
+- A server's `ssh-keys` and `user-data` are only used when it is created.
+- Volumes and network ranges can only grow.
+- `#:protected? #t` makes Hetzner refuse to delete (or rebuild) the
+  resource, including through chaudron: turn it off first.
+- `#:labels` are your own; chaudron adds `chaudron/stage` to every resource.
+- Firewalls only filter incoming traffic. Their rules are not checked for
+  drift.
+- `user-data` is stored in the state file: do not put secrets in it.
 
 ## Writing a provider
 
@@ -99,8 +134,9 @@ resource no longer exists.
 ## Development
 
 ```sh
-guix shell -m manifest.scm -- guile -L . tests/stage.scm
-guix shell -m manifest.scm -- guile -L . tests/hetzner.scm
+guile -L . tests/stage.scm
+guile -L . tests/hetzner.scm
+guile -L . tests/hetzner-resources.scm
 ```
 
-Dependencies: Guile 3, guile-json, guile-gnutls.
+Dependencies: Guile 3, guile-json, guile-gnutls (`guix shell -m manifest.scm`).

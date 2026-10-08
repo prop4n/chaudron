@@ -4,11 +4,9 @@
   #:use-module (chaudron resource)
   #:use-module (chaudron stage)
   #:use-module (chaudron hetzner api)
+  #:use-module (chaudron hetzner common)
   #:use-module (ice-9 textual-ports)
   #:export (hetzner-ssh-key))
-
-(define (ssh-key-path outputs)
-  (format #f "/ssh_keys/~a" (assq-ref outputs 'id)))
 
 (define (ssh-key-outputs key)
   `((id . ,(json-ref key "id"))
@@ -19,22 +17,21 @@
    (json-ref (hetzner-request 'POST "/ssh_keys"
                               `(("name" . ,(assq-ref props 'name))
                                 ("public_key" . ,(assq-ref props 'public-key))
-                                ("labels" . ,(stage-labels))))
+                                ("labels" . ,(labels->json props))))
              "ssh_key")))
 
 (define (read-ssh-key outputs)
-  (and=> (json-ref (hetzner-get (ssh-key-path outputs)) "ssh_key")
+  (and=> (json-ref (hetzner-get (resource-path "ssh_keys" (assq-ref outputs 'id)))
+                   "ssh_key")
          (lambda (key)
-           (cons `((name . ,(json-ref key "name")))
-                 (ssh-key-outputs key)))))
+           (cons (observe-metadata key) (ssh-key-outputs key)))))
 
 (define (update-ssh-key outputs old new)
-  (hetzner-request 'PUT (ssh-key-path outputs)
-                   `(("name" . ,(assq-ref new 'name))))
+  (update-metadata! "ssh_keys" (assq-ref outputs 'id) old new)
   outputs)
 
 (define (delete-ssh-key outputs)
-  (hetzner-delete (ssh-key-path outputs)))
+  (hetzner-delete (resource-path "ssh_keys" (assq-ref outputs 'id))))
 
 (define ssh-key-provider
   (register-provider!
@@ -51,7 +48,8 @@
       file))
 
 (define* (hetzner-ssh-key resource-name
-                          #:key public-key public-key-file (name resource-name))
+                          #:key public-key public-key-file (labels '())
+                          (name resource-name))
   "Declare an SSH key, given as a string with PUBLIC-KEY or read from
 PUBLIC-KEY-FILE, such as \"~/.ssh/id_ed25519.pub\".  Changing the key
 replaces it."
@@ -64,4 +62,5 @@ replaces it."
 #:public-key-file" resource-name)))))
     (ensure-resource ssh-key-provider resource-name
                      `((name . ,name)
-                       (public-key . ,(string-trim-both key))))))
+                       (public-key . ,(string-trim-both key))
+                       (labels . ,(sorted-labels labels))))))

@@ -4,8 +4,11 @@
   #:use-module (chaudron resource)
   #:use-module (chaudron stage)
   #:use-module (chaudron hetzner api)
+  #:use-module (chaudron hetzner common)
   #:export (allow-in
-            hetzner-firewall))
+            hetzner-firewall
+            apply-firewall!
+            remove-firewall!))
 
 (define* (allow-in protocol #:optional port
                    #:key (from '("0.0.0.0/0" "::/0")))
@@ -26,38 +29,32 @@ to PORT, a number or a range such as \"8000-8100\", from the FROM networks."
 (define (rules->json props)
   (list->vector (map rule->json (assq-ref props 'rules))))
 
-(define (firewall-path outputs . rest)
-  (apply string-append "/firewalls/" (number->string (assq-ref outputs 'id))
-         rest))
-
 (define (create-firewall _ props)
   (let ((response (hetzner-request 'POST "/firewalls"
                                    `(("name" . ,(assq-ref props 'name))
                                      ("rules" . ,(rules->json props))
-                                     ("labels" . ,(stage-labels))))))
+                                     ("labels" . ,(labels->json props))))))
     (wait-for-actions response)
     `((id . ,(json-ref response "firewall" "id")))))
 
-;; Only the name is checked for drift: rules come back from the API in a
+;; Rules are not checked for drift: they come back from the API in a
 ;; normalized form that would not compare equal to ours.
 (define (read-firewall outputs)
-  (and=> (json-ref (hetzner-get (firewall-path outputs)) "firewall")
+  (and=> (json-ref (hetzner-get (resource-path "firewalls" (assq-ref outputs 'id)))
+                   "firewall")
          (lambda (firewall)
-           (cons `((name . ,(json-ref firewall "name")))
-                 outputs))))
+           (cons (observe-metadata firewall) outputs))))
 
 (define (update-firewall outputs old new)
-  (unless (equal? (assq-ref old 'name) (assq-ref new 'name))
-    (hetzner-request 'PUT (firewall-path outputs)
-                     `(("name" . ,(assq-ref new 'name)))))
-  (unless (equal? (assq-ref old 'rules) (assq-ref new 'rules))
-    (wait-for-actions
-     (hetzner-request 'POST (firewall-path outputs "/actions/set_rules")
-                      `(("rules" . ,(rules->json new))))))
+  (let ((id (assq-ref outputs 'id)))
+    (update-metadata! "firewalls" id old new)
+    (unless (equal? (assq-ref old 'rules) (assq-ref new 'rules))
+      (resource-action "firewalls" id "set_rules"
+                       `(("rules" . ,(rules->json new))))))
   outputs)
 
 (define (delete-firewall outputs)
-  (hetzner-delete (firewall-path outputs)))
+  (hetzner-delete (resource-path "firewalls" (assq-ref outputs 'id))))
 
 (define firewall-provider
   (register-provider!
@@ -67,8 +64,24 @@ to PORT, a number or a range such as \"8000-8100\", from the FROM networks."
                   #:update update-firewall
                   #:delete delete-firewall)))
 
-(define* (hetzner-firewall resource-name #:key (rules '()) (name resource-name))
+(define* (hetzner-firewall resource-name
+                           #:key (rules '()) (labels '()) (name resource-name))
   "Declare a firewall allowing incoming traffic matching RULES, built with
 `allow-in'.  Outgoing traffic is always allowed."
   (ensure-resource firewall-provider resource-name
-                   `((name . ,name) (rules . ,rules))))
+                   `((name . ,name)
+                     (rules . ,rules)
+                     (labels . ,(sorted-labels labels)))))
+
+;;; Applying firewalls to servers.
+
+(define (server-target server)
+  (vector `(("type" . "server") ("server" . (("id" . ,server))))))
+
+(define (apply-firewall! firewall server)
+  (resource-action "firewalls" firewall "apply_to_resources"
+                   `(("apply_to" . ,(server-target server)))))
+
+(define (remove-firewall! firewall server)
+  (resource-action "firewalls" firewall "remove_from_resources"
+                   `(("remove_from" . ,(server-target server)))))
