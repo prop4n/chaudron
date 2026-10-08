@@ -1,25 +1,26 @@
-;; Effects and handlers in plain Guile, without chaudron or Hetzner.
+;; Handlers in plain Guile, without chaudron or Hetzner.
 ;;
 ;;   guile examples/effects.scm
 ;;
 ;; One program declares an infrastructure; several handlers run it in
 ;; different ways, without changing a line of it.
 
-(use-modules (ice-9 curried-definitions)  ;(define ((f a) b) ...)
+(use-modules (ice-9 exceptions)
              (ice-9 match))
 
-;;; The effect.
+;;; The effect: ask the current handler.  This would live in the library.
 
-;; A prompt tag marks where an effect is caught; think of it as the name of
-;; the effect.
-(define %resource (make-prompt-tag 'resource))
+(define current-handler (make-parameter #f))
 
 (define (resource kind name)
-  "Ask whoever runs us for resource NAME of KIND, and return what they
-answer.  We do not know, nor care, how they get it."
-  (abort-to-prompt %resource kind name))
+  "Ask the current handler for resource NAME of KIND."
+  ((current-handler) kind name))
 
-;;; The program: plain code that only performs effects.
+(define-syntax-rule (with-handler handler body ...)
+  (parameterize ((current-handler handler))
+    body ...))
+
+;;; The program: plain code, unaware of how it is run.
 
 (define (infra)
   (let* ((ip     (resource 'primary-ip "forge"))
@@ -27,77 +28,63 @@ answer.  We do not know, nor care, how they get it."
          (server (resource 'server "forge")))
     (format #t "  => ~a, reachable at ~a, storing on ~a~%" server ip data)))
 
-;;; Running a program with a handler.
+;;; Handlers: procedures from a kind and a name to an answer.
 
-(define (run program handler)
-  "Run PROGRAM.  Each time it performs a `resource' effect, call HANDLER
-with RESUME, the rest of the program, and the KIND and NAME asked for."
-  (call-with-prompt %resource
-    program
-    (lambda (resume kind name)
-      ;; RESUME is the paused rest of PROGRAM.  It may be called with the
-      ;; answer, later, or never.  It must run under the handler as well,
-      ;; to catch the effects that follow.
-      (handler (lambda (value)
-                 (run (lambda () (resume value)) handler))
-               kind name))))
-
-;;; Handlers.
-
-;; 1. Apply: pretend to call Hetzner, and resume with the result.
-(define (apply-handler resume kind name)
+(define (for-real kind name)
   (format #t "  create ~a ~a~%" kind name)
-  (resume (match kind
-            ('primary-ip "5.6.7.8")
-            ('volume "/dev/sdb")
-            ('server "server-42"))))
+  (match kind
+    ('primary-ip "5.6.7.8")
+    ('volume "/dev/sdb")
+    ('server "server-42")))
 
-;; 2. Dry run: do nothing, resume with a placeholder.
-(define (dry-run-handler resume kind name)
+(define (dry-run kind name)
   (format #t "  would create ~a ~a~%" kind name)
-  (resume (format #f "<~a ~a>" kind name)))
+  (format #f "<~a ~a>" kind name))
 
-;; 3. Guard: refuse some kinds, by never resuming: the program stops there.
-(define ((guard-handler forbidden) resume kind name)
-  (if (memq kind forbidden)
-      (format #t "  refusing to create ~a ~a: stopping here~%" kind name)
-      (apply-handler resume kind name)))
+(define (forbidding . kinds)
+  "Return a handler that refuses KINDS and creates the rest for real."
+  (lambda (kind name)
+    (when (memq kind kinds)
+      (raise-exception
+       (make-exception-with-message
+        (format #f "refusing to create ~a ~a" kind name))))
+    (for-real kind name)))
 
-;; 4. Record: silently collect what the program declares, without running
-;; anything for real.  Useful in tests.
-(define (record program)
-  (let ((declared '()))
+(define (timed handler)
+  "Return HANDLER, reporting how long each resource takes."
+  (lambda (kind name)
+    (let* ((start (get-internal-real-time))
+           (answer (handler kind name)))
+      (format #t "    (took ~ams)~%"
+              (quotient (* 1000 (- (get-internal-real-time) start))
+                        internal-time-units-per-second))
+      answer)))
+
+(define (declared program)
+  "Return the resources PROGRAM declares, without creating any."
+  (let ((resources '()))
     (with-output-to-string
       (lambda ()
-        (run program
-             (lambda (resume kind name)
-               (set! declared (cons (list kind name) declared))
-               (resume #f)))))
-    (reverse declared)))
-
-;; 5. Trace: wrap another handler and time each resource.
-(define ((trace-handler handler) resume kind name)
-  (let ((start (get-internal-real-time)))
-    (handler (lambda (value)
-               (format #t "    (~a ~a took ~ams)~%" kind name
-                       (quotient (- (get-internal-real-time) start)
-                                 (quotient internal-time-units-per-second
-                                           1000)))
-               (resume value))
-             kind name)))
+        (with-handler (lambda (kind name)
+                        (set! resources (cons (list kind name) resources))
+                        #f)
+          (program))))
+    (reverse resources)))
 
 ;;; The same program, five ways.
 
-(format #t "apply:~%")
-(run infra apply-handler)
+(format #t "for real:~%")
+(with-handler for-real (infra))
 
 (format #t "~%dry run:~%")
-(run infra dry-run-handler)
+(with-handler dry-run (infra))
 
-(format #t "~%guard, no servers allowed:~%")
-(run infra (guard-handler '(server)))
+(format #t "~%no servers allowed:~%")
+(guard (e ((exception-with-message? e)
+           (format #t "  stopped: ~a~%" (exception-message e))))
+  (with-handler (forbidding 'server) (infra)))
 
-(format #t "~%record:~%  ~s~%" (record infra))
+(format #t "~%timed:~%")
+(with-handler (timed for-real) (infra))
 
-(format #t "~%trace, around apply:~%")
-(run infra (trace-handler apply-handler))
+(format #t "~%declared:~%  ~s~%" (declared infra))
