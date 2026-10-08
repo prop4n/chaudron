@@ -1,6 +1,7 @@
 ;;; Minimal client for the Hetzner Cloud API.
 
 (define-module (chaudron hetzner api)
+  #:use-module (chaudron stage)
   #:use-module (ice-9 exceptions)
   #:use-module (ice-9 match)
   #:use-module (ice-9 receive)
@@ -14,9 +15,12 @@
             hetzner-transport
             hetzner-sleep
             hetzner-request
+            hetzner-get
             hetzner-delete
             wait-for-action
+            wait-for-actions
             json-ref
+            stage-labels
 
             hetzner-error?
             hetzner-error-status
@@ -102,11 +106,23 @@ Rate limits and server errors are retried with exponential backoff."
               (json-ref (and text (false-if-exception (json-string->scm text)))
                         "error")))))))
 
-(define (hetzner-delete path)
-  "DELETE PATH and return the response, or #f if it was already gone."
+(define (unless-gone thunk)
+  "Call THUNK; return #f instead if the resource it asks for does not exist."
   (guard (e ((and (hetzner-error? e) (eqv? 404 (hetzner-error-status e)))
              #f))
-    (hetzner-request 'DELETE path)))
+    (thunk)))
+
+(define (hetzner-get path)
+  "GET PATH and return the response, or #f if it does not exist."
+  (unless-gone (lambda () (hetzner-request 'GET path))))
+
+(define (hetzner-delete path)
+  "DELETE PATH and return the response, or #f if it was already gone."
+  (unless-gone (lambda () (hetzner-request 'DELETE path))))
+
+(define (stage-labels)
+  "Labels marking a resource as managed by chaudron in the current stage."
+  `(("chaudron/stage" . ,(stage-name (current-stage)))))
 
 (define (wait-for-action action)
   "Poll ACTION until it completes; raise an error if it fails."
@@ -119,3 +135,8 @@ Rate limits and server errors are retried with exponential backoff."
        (loop (json-ref (hetzner-request
                         'GET (format #f "/actions/~a" (json-ref action "id")))
                        "action"))))))
+
+(define (wait-for-actions response)
+  "Wait for every action listed under \"actions\" in RESPONSE."
+  (for-each wait-for-action
+            (vector->list (or (json-ref response "actions") #()))))

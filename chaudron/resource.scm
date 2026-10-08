@@ -6,6 +6,7 @@
             provider?
             provider-kind
             provider-create
+            provider-read
             provider-update
             provider-delete
             provider-replace-on
@@ -22,21 +23,24 @@
 
 ;; A provider knows how to manage one kind of resource:
 ;;   CREATE  (name props) -> outputs
+;;   READ    (outputs) -> (observed-props . outputs), or #f if it is gone;
+;;           optional, it lets chaudron notice changes made behind its back
 ;;   UPDATE  (outputs old-props new-props) -> outputs, or #f to always replace
 ;;   DELETE  (outputs)
 ;;   REPLACE-ON  props that cannot change in place.
 ;; Props and outputs are alists keyed by symbols.
 (define-record-type <provider>
-  (%make-provider kind create update delete replace-on)
+  (%make-provider kind create read update delete replace-on)
   provider?
   (kind provider-kind)
   (create provider-create)
+  (read provider-read)
   (update provider-update)
   (delete provider-delete)
   (replace-on provider-replace-on))
 
-(define* (make-provider kind #:key create update delete (replace-on '()))
-  (%make-provider kind create update delete replace-on))
+(define* (make-provider kind #:key create read update delete (replace-on '()))
+  (%make-provider kind create read update delete replace-on))
 
 ;; Providers are registered by kind, so that resources found in the state
 ;; can be deleted even when the code no longer declares them.

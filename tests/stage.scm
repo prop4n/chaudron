@@ -11,17 +11,27 @@
 
 (define next-id 0)
 
+;; The "real" infrastructure: id -> size.
+(define world (make-hash-table))
+
 (define fake
   (make-provider 'fake-thing
                  #:create (lambda (name props)
                             (set! next-id (1+ next-id))
                             (record! 'create name)
+                            (hash-set! world next-id (assq-ref props 'size))
                             `((id . ,next-id)))
+                 #:read (lambda (outputs)
+                          (let ((size (hash-ref world (assq-ref outputs 'id))))
+                            (and size (cons `((size . ,size)) outputs))))
                  #:update (lambda (outputs old new)
                             (record! 'update (assq-ref outputs 'id))
+                            (hash-set! world (assq-ref outputs 'id)
+                                       (assq-ref new 'size))
                             outputs)
                  #:delete (lambda (outputs)
-                            (record! 'delete (assq-ref outputs 'id)))
+                            (record! 'delete (assq-ref outputs 'id))
+                            (hash-remove! world (assq-ref outputs 'id)))
                  #:replace-on '(zone)))
 
 (register-provider! fake)
@@ -29,8 +39,16 @@
 (define* (fake-thing name #:key (size 1) (zone "a") (refs '()))
   (ensure-resource fake name `((size . ,size) (zone . ,zone) (refs . ,refs))))
 
+(define log "")
+
 (define-syntax-rule (run-calls body ...)
-  (begin (set! calls '()) body ... calls))
+  (begin
+    (set! calls '())
+    (set! log (call-with-output-string
+                (lambda (port)
+                  (parameterize ((current-error-port port))
+                    body ...))))
+    calls))
 
 (test-begin "stage")
 
@@ -88,6 +106,28 @@
 
   (test-equal "stages are isolated"
     '((create "x"))
+    (run-calls (with-stage "prod" (fake-thing "x"))))
+
+  (test-equal "recreates a resource deleted behind its back"
+    '((create "x"))
+    (begin
+      (hash-remove! world 5)
+      (run-calls (with-stage "prod" (fake-thing "x")))))
+
+  (test-assert "reports the missing resource"
+    (string-contains log "fake-thing/x no longer exists"))
+
+  (test-equal "corrects drift"
+    '((update 6))
+    (begin
+      (hash-set! world 6 9)
+      (run-calls (with-stage "prod" (fake-thing "x")))))
+
+  (test-assert "reports the drift"
+    (string-contains log "fake-thing/x has drifted: size is 9, expected 1"))
+
+  (test-equal "is back in sync after correcting drift"
+    '()
     (run-calls (with-stage "prod" (fake-thing "x"))))
 
   (test-equal "destroy-stage deletes everything in the stage"

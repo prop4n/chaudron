@@ -5,6 +5,7 @@
              (chaudron hetzner api)
              (ice-9 exceptions)
              (json)
+             (srfi srfi-43)
              (srfi srfi-64))
 
 (define %endpoint "https://api.hetzner.cloud/v1")
@@ -47,52 +48,123 @@
 
 (define %public-key "ssh-ed25519 AAAA moi@forge")
 
-(define* (infra #:key (type "cx22"))
+(define* (server-json #:key (type "cx22"))
+  `(("id" . 42)
+    ("name" . "forge")
+    ("server_type" . (("name" . ,type)))
+    ("public_net" . (("ipv4" . (("ip" . "1.2.3.4")))
+                     ("ipv6" . (("ip" . "2a01::/64")))))))
+
+(define* (infra #:key (type "cx22") (firewall? #t))
   (with-stage "prod"
-    (let ((key (hetzner-ssh-key "moi" #:public-key %public-key)))
+    (let* ((key (hetzner-ssh-key "moi" #:public-key %public-key))
+           (web (and firewall?
+                     (hetzner-firewall "web" #:rules (list (allow-in 'tcp 22))))))
       (hetzner-server "forge" #:type type #:location "fsn1"
-                      #:ssh-keys (list key)))))
+                      #:ssh-keys (list key)
+                      #:firewalls (if web (list web) '())
+                      #:user-data "#cloud-config"))))
+
+(define reads
+  ;; Responses to the reads done at the start of a run.
+  (list `(200 . (("ssh_key" . (("id" . 7) ("name" . "moi")
+                               ("fingerprint" . "aa")))))
+        `(200 . (("firewall" . (("id" . 3) ("name" . "web")))))))
+
+(define read-routes
+  '((GET "/ssh_keys/7") (GET "/firewalls/3") (GET "/servers/42")))
+
+(define-syntax-rule (with-reads (response ...) body ...)
+  (begin
+    (set! requests '())
+    (set! responses (append reads (list response ...)))
+    (parameterize ((hetzner-transport fake-transport)
+                   (hetzner-token "secret")
+                   (hetzner-sleep (const #t)))
+      body ...)))
+
+(define (quietly thunk)
+  (parameterize ((current-error-port (%make-void-port "w")))
+    (thunk)))
 
 (test-begin "hetzner")
 
 (parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
 
-  (test-equal "creates the ssh key and the server"
-    '("1.2.3.4" (POST "/ssh_keys") (POST "/servers")
+  (test-equal "creates the ssh key, the firewall and the server"
+    '("1.2.3.4" (POST "/ssh_keys") (POST "/firewalls") (POST "/servers")
       (GET "/actions/1") (GET "/actions/2"))
     (with-api (`(201 . (("ssh_key" . (("id" . 7) ("fingerprint" . "aa")))))
-               `(201 . (("server"
-                        . (("id" . 42)
-                           ("public_net"
-                            . (("ipv4" . (("ip" . "1.2.3.4")))
-                               ("ipv6" . (("ip" . "2a01::/64")))))))
-                       ("action" . ,(action 1 "running"))
-                       ("next_actions" . #(,(action 2 "running")))))
+               `(201 . (("firewall" . (("id" . 3)))
+                        ("actions" . #())))
+               `(201 . (("server" . ,(server-json))
+                        ("action" . ,(action 1 "running"))
+                        ("next_actions" . #(,(action 2 "running")))))
                (done 1)
                (done 2))
-      (cons (output (infra) 'ipv4) (routes))))
+      (cons (output (quietly infra) 'ipv4) (routes))))
 
   (test-equal "sends the expected payloads"
-    '("ssh-ed25519 AAAA moi@forge" "prod" "cx22" #(7))
+    '("ssh-ed25519 AAAA moi@forge" "prod"
+      #((("direction" . "in") ("protocol" . "tcp") ("port" . "22")
+         ("source_ips" . #("0.0.0.0/0" "::/0"))))
+      "cx22" #(7) #((("firewall" . 3))) "#cloud-config")
     (list (assoc-ref (body 0) "public_key")
           (assoc-ref (assoc-ref (body 0) "labels") "chaudron/stage")
-          (assoc-ref (body 1) "server_type")
-          (assoc-ref (body 1) "ssh_keys")))
+          (vector-map (lambda (_ rule) (reverse rule))
+                      (assoc-ref (body 1) "rules"))
+          (assoc-ref (body 2) "server_type")
+          (assoc-ref (body 2) "ssh_keys")
+          (assoc-ref (body 2) "firewalls")
+          (assoc-ref (body 2) "user_data")))
 
   (test-equal "authenticates with the token"
     '(bearer secret)
     (assq-ref (cadddr (car requests)) 'authorization))
 
-  (test-equal "does nothing when nothing changed"
-    '()
-    (with-api () (infra) (routes)))
+  (test-equal "only reads when nothing changed"
+    read-routes
+    (with-reads (`(200 . (("server" . ,(server-json)))))
+      (quietly infra)
+      (routes)))
 
   (test-equal "resizes the server in place"
-    '((POST "/servers/42/actions/poweroff")
-      (POST "/servers/42/actions/change_type")
-      (POST "/servers/42/actions/poweron"))
-    (with-api ((done 3) (done 4) (done 5))
-      (infra #:type "cx32")
+    (append read-routes
+            '((POST "/servers/42/actions/poweroff")
+              (POST "/servers/42/actions/change_type")
+              (POST "/servers/42/actions/poweron")))
+    (with-reads (`(200 . (("server" . ,(server-json))))
+                 (done 3) (done 4) (done 5))
+      (quietly (lambda () (infra #:type "cx32")))
+      (routes)))
+
+  (test-equal "corrects a resize made behind its back"
+    (append read-routes
+            '((POST "/servers/42/actions/poweroff")
+              (POST "/servers/42/actions/change_type")
+              (POST "/servers/42/actions/poweron")))
+    (with-reads (`(200 . (("server" . ,(server-json #:type "cx42"))))
+                 (done 3) (done 4) (done 5))
+      (quietly (lambda () (infra #:type "cx32")))
+      (routes)))
+
+  (test-equal "recreates a server deleted behind its back"
+    (append read-routes '((POST "/servers")))
+    (with-reads ('(404 . (("error" . (("code" . "not_found")))))
+                 `(201 . (("server" . ,(server-json #:type "cx32"))
+                          ("action" . ,(action 6 "success")))))
+      (quietly (lambda () (infra #:type "cx32")))
+      (routes)))
+
+  (test-equal "detaches and deletes a firewall that is no longer declared"
+    '((GET "/ssh_keys/7") (GET "/servers/42")
+      (POST "/firewalls/3/actions/remove_from_resources")
+      (DELETE "/firewalls/3"))
+    (with-api ((car reads)
+               `(200 . (("server" . ,(server-json #:type "cx32"))))
+               `(201 . (("actions" . #(,(action 7 "success")))))
+               '(204 . #f))
+      (quietly (lambda () (infra #:type "cx32" #:firewall? #f)))
       (routes)))
 
   (test-equal "deletes orphans, tolerating resources already gone"
@@ -100,7 +172,7 @@
     (with-api ('(404 . (("error" . (("code" . "not_found")
                                    ("message" . "server not found")))))
                '(204 . #f))
-      (with-stage "prod" #t)
+      (quietly (lambda () (with-stage "prod" #t)))
       (routes)))
 
   (test-equal "retries on server errors"

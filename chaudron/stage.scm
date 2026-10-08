@@ -4,6 +4,7 @@
 (define-module (chaudron stage)
   #:use-module (chaudron resource)
   #:use-module (chaudron state)
+  #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-26)
@@ -12,7 +13,8 @@
             call-with-stage
             with-stage
             ensure-resource
-            destroy-stage))
+            destroy-stage
+            report))
 
 (define-record-type <stage>
   (make-stage name entries seen)
@@ -22,6 +24,11 @@
   (seen stage-seen set-stage-seen!))     ;keys declared during this run
 
 (define current-stage (make-parameter #f))
+
+(define (report message . args)
+  "Tell the user what chaudron is doing, on the error port."
+  (apply format (current-error-port)
+         (string-append "chaudron: " message "~%") args))
 
 (define (entry-key entry)
   (cons (assq-ref entry 'kind) (assq-ref entry 'name)))
@@ -53,19 +60,42 @@
              (not (equal? (assq-ref old key) (assq-ref new key))))
            (provider-replace-on provider))))
 
-(define (converge provider name entry props)
-  "Make resource NAME match PROPS and return its outputs."
-  (let ((old-props (and entry (assq-ref entry 'props)))
-        (outputs (and entry (assq-ref entry 'outputs))))
-    (cond ((not entry)
-           ((provider-create provider) name props))
-          ((equal? old-props props)
-           outputs)
-          ((needs-replacement? provider old-props props)
-           ((provider-delete provider) outputs)
-           ((provider-create provider) name props))
-          (else
-           ((provider-update provider) outputs old-props props)))))
+(define (observe provider id props outputs)
+  "Ask PROVIDER what resource ID really looks like.  Return its current
+props and outputs as a pair, or #f if it no longer exists."
+  (match ((or (provider-read provider) (lambda _ (cons '() outputs))) outputs)
+    (#f
+     (report "~a no longer exists" id)
+     #f)
+    ((observed . outputs)
+     (for-each (match-lambda
+                 ((key . value)
+                  (unless (equal? value (assq-ref props key))
+                    (report "~a has drifted: ~a is ~s, expected ~s"
+                            id key value (assq-ref props key)))))
+               observed)
+     (cons (map (match-lambda
+                  ((key . value) (or (assq key observed) (cons key value))))
+                props)
+           outputs))))
+
+(define (converge provider id name current props)
+  "Make resource NAME match PROPS and return its outputs.  CURRENT is what
+it looks like now, as returned by `observe'."
+  (match current
+    (#f
+     (report "create ~a" id)
+     ((provider-create provider) name props))
+    ((old . outputs)
+     (cond ((equal? old props)
+            outputs)
+           ((needs-replacement? provider old props)
+            (report "replace ~a" id)
+            ((provider-delete provider) outputs)
+            ((provider-create provider) name props))
+           (else
+            (report "update ~a" id)
+            ((provider-update provider) outputs old props))))))
 
 (define (ensure-resource provider name props)
   "Converge resource NAME, managed by PROVIDER, to PROPS within the current
@@ -74,12 +104,15 @@ stage.  Return the resulting <resource>."
                     (error "resource declared outside of with-stage" name)))
          (kind (provider-kind provider))
          (key (cons kind name))
+         (id (format #f "~a/~a" kind name))
          (old (hash-ref (stage-entries stage) key))
          (props (resolve-references props)))
     (when (member key (stage-seen stage))
       (error "resource declared twice" kind name))
     (set-stage-seen! stage (cons key (stage-seen stage)))
-    (let* ((outputs (converge provider name old props))
+    (let* ((current (and old (observe provider id (assq-ref old 'props)
+                                      (assq-ref old 'outputs))))
+           (outputs (converge provider id name current props))
            (entry `((kind . ,kind)
                     (name . ,name)
                     (seq . ,(if old (assq-ref old 'seq) (next-seq stage)))
@@ -102,6 +135,8 @@ stage.  Return the resulting <resource>."
                                  (> (assq-ref a 'seq) (assq-ref b 'seq))))))
     (for-each entry-provider entries)   ;fail before deleting anything
     (for-each (lambda (entry)
+                (report "delete ~a/~a"
+                        (assq-ref entry 'kind) (assq-ref entry 'name))
                 ((provider-delete (entry-provider entry))
                  (assq-ref entry 'outputs))
                 (delete-entry! (stage-name stage)

@@ -1,4 +1,4 @@
-;; A server reachable over SSH.
+;; A server reachable over SSH only.
 ;;
 ;;   HCLOUD_TOKEN=... guile -L . examples/forge.scm
 ;;   HCLOUD_TOKEN=... guile -L . examples/forge.scm destroy
@@ -21,8 +21,12 @@
                                                 (string-append
                                                  (getenv "HOME")
                                                  "/.ssh/id_ed25519.pub"))))
+            (ssh-only (hetzner-firewall "ssh-only"
+                                        #:rules (list (allow-in 'tcp 22)
+                                                      (allow-in 'icmp))))
             (forge (hetzner-server "forge"
                                    #:type "cx23"
                                    #:location "fsn1"
-                                   #:ssh-keys (list key))))
+                                   #:ssh-keys (list key)
+                                   #:firewalls (list ssh-only))))
        (format #t "ssh root@~a~%" (output forge 'ipv4))))))

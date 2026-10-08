@@ -10,6 +10,7 @@
                current-stage
                stage-name
                ensure-resource
+               report
                make-provider
                register-provider!
                resource?
