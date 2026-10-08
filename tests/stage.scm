@@ -3,6 +3,7 @@
 (use-modules (chaudron)
              (ice-9 exceptions)
              (ice-9 threads)
+             (srfi srfi-1)
              (srfi srfi-64))
 
 (define calls '())
@@ -230,6 +231,24 @@
              (with-stage "many"
                (concurrently (fake-thing "m1") (error "boom")))))
           calls))
+
+  (test-assert "reports from several threads do not mix"
+    (let ((lines (string-split
+                  (string-trim-right
+                   (call-with-output-string
+                     (lambda (port)
+                       (parameterize ((current-error-port port))
+                         (apply call-concurrently
+                                (map (lambda (i)
+                                       (lambda ()
+                                         (report "line ~a of the report" i)))
+                                     (iota 50)))))))
+                  #\newline)))
+      (and (= 50 (length lines))
+           (every (lambda (line)
+                    (and (string-prefix? "chaudron: line " line)
+                         (string-suffix? " of the report" line)))
+                  lines))))
 
   (test-assert "runs branches at the same time"
     (let ((start (get-internal-real-time)))

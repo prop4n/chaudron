@@ -4,6 +4,7 @@
 (define-module (chaudron converge)
   #:use-module (chaudron resource)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 threads)
   #:use-module (srfi srfi-1)
   #:export (report
             perform
@@ -11,10 +12,16 @@
             observe
             converge))
 
+;; Ports are not thread-safe: serialize reports, one whole line at a time.
+(define %report-lock (make-mutex))
+
 (define (report message . args)
   "Tell the user what chaudron is doing, on the error port."
-  (apply format (current-error-port)
-         (string-append "chaudron: " message "~%") args))
+  (let ((line (apply format #f (string-append "chaudron: " message "~%")
+                     args)))
+    (with-mutex %report-lock
+      (display line (current-error-port))
+      (force-output (current-error-port)))))
 
 (define* (perform dry-run? verb id action #:key (keys '()) planned)
   "Report that VERB, such as \"create\", applies to resource ID because of

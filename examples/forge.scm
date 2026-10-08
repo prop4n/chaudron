@@ -1,14 +1,9 @@
-;; HCLOUD_TOKEN=... guile -L . examples/forge.scm          deploy
-;; HCLOUD_TOKEN=... guile -L . examples/forge.scm dry-run  show what deploy would do
-;; HCLOUD_TOKEN=... guile -L . examples/forge.scm destroy  delete everything
-
 (use-modules (chaudron)
              (chaudron hetzner)
              (ice-9 match))
 
 (define (deploy dry-run?)
   (with-stage "prod" #:dry-run? dry-run?
-    ;; These four do not depend on each other: create them at the same time.
     (define-values (key ssh-only ip data)
       (concurrently
        (hetzner-ssh-key "propan" #:public-key-file "~/.ssh/id_ed25519.pub")
