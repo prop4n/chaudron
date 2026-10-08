@@ -8,6 +8,7 @@
   #:use-module (ice-9 pretty-print)
   #:use-module (ice-9 receive)
   #:export (bootstrap-guix-system!
+            guix-system-running?
             arm?))
 
 (define (ssh-arguments identity address . command)
@@ -30,6 +31,14 @@
           (error "could not connect over SSH" address))
         ((hetzner-sleep) 5)
         (loop (1+ tries))))))
+
+(define (guix-system-running? identity address)
+  "Return true if ADDRESS already runs Guix System, as when installing it was
+interrupted after rebooting."
+  (receive (status _) ((run-command) "ssh"
+                       (ssh-arguments identity address
+                                      "test -e /run/current-system"))
+    (eqv? 0 status)))
 
 (define (efi? server-type)
   (not (or (string-prefix-ci? "cx" server-type)

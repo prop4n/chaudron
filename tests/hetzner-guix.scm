@@ -67,6 +67,11 @@
 (define describe '(0 . "(list (channel (name 'guix) (commit \"abc\")))"))
 (define (hashed value) `(0 . ,(string-append value "\n")))
 (define ok '(0 . #f))
+(define not-guix '(1 . #f))
+
+;; Recent OpenSSH prints a comment before the keys.
+(define keyscan
+  '(0 . "# 1.2.3.4:22 SSH-2.0-OpenSSH_10.2\n1.2.3.4 ssh-ed25519 AAAAKEY\n"))
 
 (test-begin "hetzner-guix")
 
@@ -74,16 +79,16 @@
 
   (test-equal "installs Guix System, then deploys"
     '((("guix" "describe") ("guix" "hash")
+       ("ssh" "test -e /run/current-system")
        ("ssh" "true") ("ssh" "true") ("ssh" "bash" "-s")
        ("ssh" "test -e /run/current-system")
        ("ssh-keyscan" "-t") ("guix" "deploy"))
       ((POST "/servers/42/actions/enable_rescue")
        (POST "/servers/42/actions/reset")
        (POST "/servers/42/actions/reboot")))
-    (with-commands (describe (hashed "h1")
+    (with-commands (describe (hashed "h1") not-guix
                     '(255 . #f) ok ok ok   ;not up yet, then up
-                    '(0 . "1.2.3.4 ssh-ed25519 AAAAKEY\n")
-                    ok)
+                    keyscan ok)
                    (list (done 1) (done 2) (done 3))
       (guix-system)
       (list commands (routes))))
@@ -124,14 +129,22 @@
       commands))
 
   (test-assert "installs an EFI system for other types"
-    (with-commands (describe (hashed "h3") ok ok ok
-                    '(0 . "1.2.3.4 ssh-ed25519 AAAAKEY\n") ok)
+    (with-commands (describe (hashed "h3") not-guix ok ok ok keyscan ok)
                    (list (done 1) (done 2) (done 3))
       (guix-system #:server (make-resource 'hetzner-server "forge"
                                            '((type . "cpx22"))
                                            '((id . 43) (ipv4 . "1.2.3.4"))))
       (and (string-contains script "grub-efi-bootloader")
            (string-contains script "mount /dev/sda15 /mnt/boot/efi")))))
+
+(parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
+  (test-equal "does not install Guix System again if it already runs"
+    '(("guix" "describe") ("guix" "hash")
+      ("ssh" "test -e /run/current-system")
+      ("ssh-keyscan" "-t") ("guix" "deploy"))
+    (with-commands (describe (hashed "h1") ok keyscan ok) '()
+      (guix-system)
+      commands)))
 
 (define failures (test-runner-fail-count (test-runner-current)))
 (test-end "hetzner-guix")

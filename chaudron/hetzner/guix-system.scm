@@ -9,14 +9,23 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 pretty-print)
   #:use-module (ice-9 textual-ports)
+  #:use-module (srfi srfi-1)
   #:export (hetzner-guix-system))
 
 (define (host-key address)
   "Return the ed25519 SSH host key of ADDRESS, as 'guix deploy' wants it."
-  (match (string-tokenize (invoke "ssh-keyscan" (list "-t" "ed25519" address)
-                                  #:capture? #t))
-    ((_ type key . _) (string-append type " " key))
-    (_ (error "no SSH host key for" address))))
+  (define (line->key line)
+    ;; Lines look like "ADDRESS ssh-ed25519 KEY"; others are comments.
+    (match (string-tokenize line)
+      ((_ type key) (and (string-prefix? "ssh-" type)
+                         (string-append type " " key)))
+      (_ #f)))
+
+  (or (any line->key
+           (string-split (invoke "ssh-keyscan" (list "-t" "ed25519" address)
+                                 #:capture? #t)
+                         #\newline))
+      (error "no SSH host key for" address)))
 
 (define (deploy! props outputs)
   (report "~a: deploying ~a" (assq-ref props 'address) (assq-ref props 'os))
@@ -40,7 +49,9 @@
   outputs)
 
 (define (create-guix-system _ props)
-  (bootstrap-guix-system! props)
+  (unless (guix-system-running? (assq-ref props 'identity)
+                                (assq-ref props 'address))
+    (bootstrap-guix-system! props))
   (deploy! props
            `((host-key . ,(host-key (assq-ref props 'address)))
              (system . ,(if (arm? (assq-ref props 'server-type))
