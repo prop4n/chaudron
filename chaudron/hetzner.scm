@@ -3,6 +3,7 @@
 (define-module (chaudron hetzner)
   #:use-module (chaudron hetzner api)
   #:use-module (chaudron hetzner firewall)
+  #:use-module (chaudron hetzner guix-system)
   #:use-module (chaudron hetzner load-balancer)
   #:use-module (chaudron hetzner network)
   #:use-module (chaudron hetzner primary-ip)
@@ -20,6 +21,7 @@
                hetzner-load-balancer
                forward
                hetzner-snapshot
+               hetzner-guix-system
                hetzner-token
                hetzner-error?
                hetzner-error-status

@@ -138,6 +138,30 @@ Everything else changes in place. A few things to know:
   drift.
 - `user-data` is stored in the state file: do not put secrets in it.
 
+### Guix System
+
+`hetzner-guix-system` runs Guix System on a server, configured by a file
+whose last expression is an `operating-system`, typically based on
+`make-hetzner-os` from `(gnu machine hetzner)`:
+
+```scheme
+(hetzner-guix-system "forge"
+                     #:server forge
+                     #:os "forge-os.scm"
+                     #:ssh-key key)            ;the hetzner-ssh-key of...
+                                               ;#:identity, ~/.ssh/id_ed25519
+```
+
+The first time, it boots the server into Hetzner's rescue system, **erases
+its disk**, installs a minimal Guix System, then deploys the configuration
+with `guix deploy`. Afterwards, it deploys again whenever the configuration
+file or the Guix in use (`guix describe`) changes. Changes to modules the
+file uses are not noticed: touch the file to deploy them.
+
+It needs `guix`, `ssh` and `ssh-keyscan` on the machine running chaudron,
+and a Guix signing key (`guix archive --generate-key`). Volumes are not
+mounted for you: add a `file-system` for their `linux-device`.
+
 ## Writing a provider
 
 A provider is a module that registers a `make-provider` and wraps
@@ -168,6 +192,7 @@ resource no longer exists.
 guile -L . tests/stage.scm
 guile -L . tests/hetzner.scm
 guile -L . tests/hetzner-resources.scm
+guile -L . tests/hetzner-guix.scm
 ```
 
 Dependencies: Guile 3, guile-json, guile-gnutls (`guix shell -m manifest.scm`).

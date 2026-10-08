@@ -1,6 +1,7 @@
 ;;; Hetzner Cloud SSH keys.
 
 (define-module (chaudron hetzner ssh-key)
+  #:use-module (chaudron command)
   #:use-module (chaudron resource)
   #:use-module (chaudron stage)
   #:use-module (chaudron hetzner api)
@@ -41,11 +42,6 @@
                   #:update update-ssh-key
                   #:delete delete-ssh-key
                   #:replace-on '(public-key))))
-
-(define (expand-home file)
-  (if (string-prefix? "~/" file)
-      (string-append (getenv "HOME") (string-drop file 1))
-      file))
 
 (define* (hetzner-ssh-key resource-name
                           #:key public-key public-key-file (labels '())
