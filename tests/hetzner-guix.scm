@@ -118,9 +118,11 @@
       (guix-system)
       commands))
 
-  (test-equal "deploys again when they changed"
-    '(("guix" "describe") ("guix" "hash") ("guix" "deploy"))
-    (with-commands (describe (hashed "h2") ok) '()
+  (test-equal "deploys again when they changed, once the server is up"
+    '(("guix" "describe") ("guix" "hash")
+      ("ssh" "test -e /run/current-system") ("ssh" "test -e /run/current-system")
+      ("guix" "deploy"))
+    (with-commands (describe (hashed "h2") '(255 . #f) ok ok) '()
       (guix-system)
       commands))
 

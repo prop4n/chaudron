@@ -78,6 +78,8 @@
                             "x86_64-linux")))))
 
 (define (update-guix-system outputs old new)
+  ;; The server may have just been resized, and still be booting.
+  (wait-for-guix-system (assq-ref new 'identity) (assq-ref new 'address))
   (deploy! new outputs))
 
 (define guix-system-provider

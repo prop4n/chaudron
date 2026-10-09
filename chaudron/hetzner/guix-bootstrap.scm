@@ -9,6 +9,7 @@
   #:use-module (ice-9 receive)
   #:export (bootstrap-guix-system!
             guix-system-running?
+            wait-for-guix-system
             arm?))
 
 (define (ssh-arguments identity address . command)
@@ -39,6 +40,11 @@ interrupted after rebooting."
                        (ssh-arguments identity address
                                       "test -e /run/current-system"))
     (eqv? 0 status)))
+
+(define (wait-for-guix-system identity address)
+  "Wait until ADDRESS runs Guix System and answers over SSH, as after it was
+resized or rebooted."
+  (wait-for-ssh identity address "test -e /run/current-system"))
 
 (define (efi? server-type)
   (not (or (string-prefix-ci? "cx" server-type)
@@ -134,4 +140,4 @@ guix system init /tmp/bootstrap.scm /mnt
     (report "~a: rebooting into Guix System" address)
     (resource-action "servers" server "reboot")
     ;; Until it has rebooted, the rescue system may still answer.
-    (wait-for-ssh identity address "test -e /run/current-system")))
+    (wait-for-guix-system identity address)))
