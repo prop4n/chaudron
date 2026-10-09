@@ -7,7 +7,7 @@
              (ice-9 exceptions)
              (srfi srfi-26)
              (srfi srfi-64)
-             (tests fake-hetzner))
+             (tests fake-api))
 
 (define-syntax-rule (in-stage name body ...)
   (quietly (lambda () (with-stage name body ...))))

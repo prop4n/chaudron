@@ -1,8 +1,10 @@
-;;; A scripted fake of the Hetzner Cloud API, for tests.
+;;; A scripted fake of the Hetzner Cloud and Cloudflare APIs, for tests.
 
-(define-module (tests fake-hetzner)
+(define-module (tests fake-api)
+  #:use-module (chaudron cloudflare api)
   #:use-module (chaudron hetzner api)
   #:use-module (json)
+  #:use-module (srfi srfi-1)
   #:export (call-with-api
             with-api
             recorded-requests
@@ -11,9 +13,16 @@
             action
             done
             ok
+            cloudflare-ok
             quietly))
 
-(define %endpoint "https://api.hetzner.cloud/v1")
+(define %endpoints
+  '("https://api.hetzner.cloud/v1" "https://api.cloudflare.com/client/v4"))
+
+(define (url->path url)
+  (let ((endpoint (find (lambda (endpoint) (string-prefix? endpoint url))
+                        %endpoints)))
+    (string-drop url (string-length endpoint))))
 
 (define requests '())                   ;(method path body headers)
 (define responses '())                  ;(status . json), consumed in order
@@ -22,7 +31,7 @@
   (set! requests
         (append requests
                 (list (list method
-                            (string-drop url (string-length %endpoint))
+                            (url->path url)
                             (and body (json-string->scm body))
                             headers))))
   (when (null? responses)
@@ -38,7 +47,10 @@
   (set! responses scripted-responses)
   (parameterize ((hetzner-transport fake-transport)
                  (hetzner-token "secret")
-                 (hetzner-sleep (const #t)))
+                 (hetzner-sleep (const #t))
+                 (cloudflare-transport fake-transport)
+                 (cloudflare-token "secret")
+                 (cloudflare-sleep (const #t)))
     (thunk)))
 
 (define-syntax-rule (with-api (response ...) body ...)
@@ -65,6 +77,10 @@
 (define (ok key json)
   "A successful response carrying JSON under KEY."
   `(200 . ((,key . ,json))))
+
+(define (cloudflare-ok result)
+  "A successful Cloudflare response carrying RESULT."
+  `(200 . (("success" . #t) ("errors" . #()) ("result" . ,result))))
 
 (define (quietly thunk)
   "Call THUNK, discarding what chaudron reports."

@@ -10,7 +10,7 @@
              (srfi srfi-1)
              (srfi srfi-26)
              (srfi srfi-64)
-             (tests fake-hetzner))
+             (tests fake-api))
 
 ;;; Fake commands.
 

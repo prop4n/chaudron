@@ -6,7 +6,7 @@
              (ice-9 exceptions)
              (srfi srfi-43)
              (srfi srfi-64)
-             (tests fake-hetzner))
+             (tests fake-api))
 
 (define %public-key "ssh-ed25519 AAAA moi@forge")
 

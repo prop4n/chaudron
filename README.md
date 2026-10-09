@@ -173,6 +173,41 @@ It needs `guix`, `ssh` and `ssh-keyscan` on the machine running chaudron,
 and a Guix signing key (`guix archive --generate-key`). Volumes are not
 mounted for you: add a `file-system` for their `linux-device`.
 
+## Cloudflare
+
+The token comes from `CLOUDFLARE_API_TOKEN`, or from
+`(with-cloudflare token body ...)`. It needs the "DNS: Edit" permission on
+the zones it manages.
+
+```scheme
+(use-modules (chaudron) (chaudron hetzner) (chaudron cloudflare))
+
+(with-stage "prod"
+  (define forge (hetzner-server "forge" ...))
+
+  (cloudflare-dns-record "git"
+                         #:zone "example.com"       ;git.example.com
+                         #:content (output forge 'ipv4))
+
+  (cloudflare-dns-record "apex" #:zone "example.com" #:name "@"
+                         #:content (output forge 'ipv4)
+                         #:proxied? #t)             ;through Cloudflare
+
+  (cloudflare-dns-record "mail" #:zone "example.com" #:type 'MX
+                         #:name "@" #:content "mx.example.com"
+                         #:priority 10))
+```
+
+`#:name` defaults to the resource name and is relative to the zone; `"@"`
+is the zone itself. Records are named as given, without the stage: two
+stages declaring the same record fight over it. Changing a record's zone or
+type replaces it; anything else changes in place. Records chaudron manages
+carry the comment `chaudron: stage <stage>`.
+
+| Resource | Outputs | Changes that replace it |
+|---|---|---|
+| `cloudflare-dns-record` | `id`, `zone-id`, `name` | zone, type |
+
 ## Writing a provider
 
 A provider is a module that registers a `make-provider` and wraps
@@ -204,6 +239,7 @@ guile -L . tests/stage.scm
 guile -L . tests/hetzner.scm
 guile -L . tests/hetzner-resources.scm
 guile -L . tests/hetzner-guix.scm
+guile -L . tests/cloudflare.scm
 ```
 
 Dependencies: Guile 3, guile-json, guile-gnutls (`guix shell -m manifest.scm`).
