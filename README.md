@@ -218,6 +218,34 @@ carry the comment `chaudron: stage <stage>`.
 |---|---|---|
 | `cloudflare-dns-record` | `id`, `zone-id`, `name` | zone, type |
 
+## Livebox (experimental)
+
+Orange's Livebox has an undocumented API on the local network; this was only
+tried on a Livebox Fibre, and a firmware update may break it. Credentials
+come from `LIVEBOX_USERNAME` (default `admin`) and `LIVEBOX_PASSWORD`; the
+address from `livebox-host`, `192.168.1.1` by default.
+
+```scheme
+(use-modules (chaudron) (chaudron livebox))
+
+(with-stage "home"
+  (livebox-port-forward "headscale" #:port 443 #:to "192.168.1.202")
+  (livebox-port-forward "stun" #:port 3478 #:to "192.168.1.203"
+                        #:protocol 'udp)
+  (livebox-dhcp-lease "server" #:mac "aa:bb:cc:00:11:22"
+                      #:ip "192.168.1.200"))
+```
+
+A port forward's name is its id in the Livebox: declaring the name of an
+existing rule, as shown in its web interface, takes it over. `#:protocol` is
+`'tcp`, `'udp` or `'both`; `#:enabled? #f` keeps a rule without applying it.
+A lease is replaced when its address or MAC changes.
+
+| Resource | Outputs | Changes that replace it |
+|---|---|---|
+| `livebox-port-forward` | `id` | — |
+| `livebox-dhcp-lease` | `mac` | any |
+
 ## Writing a provider
 
 A provider is a module that registers a `make-provider` and wraps
@@ -251,6 +279,7 @@ guile -L . tests/hetzner-resources.scm
 guile -L . tests/hetzner-guix.scm
 guile -L . tests/cloudflare.scm
 guile -L . tests/env.scm
+guile -L . tests/livebox.scm
 ```
 
 Dependencies: Guile 3, guile-json, guile-gnutls (`guix shell -m manifest.scm`).
