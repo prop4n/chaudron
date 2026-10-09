@@ -108,7 +108,9 @@
          (string-contains deployment "\"1.2.3.4\"")
          (string-contains deployment "\"ssh-ed25519 AAAAKEY\"")
          (string-contains deployment "\"x86_64-linux\"")
-         (string-contains deployment os-file)))
+         (string-contains deployment os-file)
+         ;; Or activating the system would forget our signing key.
+         (string-contains deployment "/etc/guix/signing-key.pub")))
 
   (test-equal "does nothing when neither the configuration nor Guix changed"
     '(("guix" "describe") ("guix" "hash"))

@@ -27,14 +27,33 @@
                          #\newline))
       (error "no SSH host key for" address)))
 
+(define %authorize
+  ;; Activating a system rewrites the keys its Guix daemon trusts: add ours,
+  ;; or the next deployment would be refused.
+  '(define (authorize os)
+     (operating-system
+       (inherit os)
+       (services
+        (modify-services (operating-system-user-services os)
+          (guix-service-type
+           config => (guix-configuration
+                      (inherit config)
+                      (authorized-keys
+                       (cons (local-file "/etc/guix/signing-key.pub")
+                             (guix-configuration-authorized-keys
+                              config))))))))))
+
 (define (deploy! props outputs)
   (report "~a: deploying ~a" (assq-ref props 'address) (assq-ref props 'os))
   (call-with-temporary-file
    (lambda (file port)
-     (pretty-print '(use-modules (gnu machine) (gnu machine ssh)) port)
+     (pretty-print '(use-modules (gnu) (gnu machine) (gnu machine ssh)
+                                 (guix gexp))
+                   port)
+     (pretty-print %authorize port)
      (pretty-print
       `(list (machine
-              (operating-system (load ,(assq-ref props 'os)))
+              (operating-system (authorize (load ,(assq-ref props 'os))))
               (environment managed-host-environment-type)
               (configuration
                (machine-ssh-configuration
