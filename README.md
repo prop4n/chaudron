@@ -144,12 +144,11 @@ Everything else changes in place. A few things to know:
 
 `hetzner-guix-system` runs Guix System on a server, configured by a file
 whose last expression is an `operating-system`, typically based on
-`make-hetzner-os` from `(gnu machine hetzner)`. While it is loaded, the
-`CHAUDRON_SERVER_TYPE` environment variable holds the server's type:
+`make-hetzner-os` from `(gnu machine hetzner)`, given the server's type:
 
 ```scheme
 (operating-system
-  (inherit (make-hetzner-os (getenv "CHAUDRON_SERVER_TYPE")))
+  (inherit (make-hetzner-os "cx33"))
   (host-name "forge")
   ...)
 ```

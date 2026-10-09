@@ -2,7 +2,7 @@
              (gnu machine hetzner))
 
 (operating-system
-  (inherit (make-hetzner-os (getenv "CHAUDRON_SERVER_TYPE")))
+  (inherit (make-hetzner-os "cx33"))
   (host-name "forge")
   (timezone "Europe/Paris")
   (packages (append (specifications->packages '("git" "htop" "fastfetch"))
