@@ -23,16 +23,13 @@
                       #:ipv4 ip
                       #:volumes (list data)))
 
-    ;; Run Guix System on forge, configured by forge-os.scm.  The first time,
-    ;; this erases forge's disk; the data volume is left alone.
     (hetzner-guix-system "forge"
                          #:server forge
                          #:os (string-append (dirname (current-filename))
                                              "/forge-os.scm")
                          #:ssh-key key)
 
-    (format #t "ssh root@~a~%" (output forge 'ipv4))
-    (format #t "data: ~a~%" (output data 'linux-device))))
+    (format #t "ssh root@~a~%" (output forge 'ipv4))))
 
 (match (command-line)
   ((_ "destroy") (destroy-stage "prod"))

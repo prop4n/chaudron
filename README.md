@@ -133,6 +133,8 @@ Everything else changes in place. A few things to know:
 - Volumes and network ranges can only grow.
 - `#:protected? #t` makes Hetzner refuse to delete (or rebuild) the
   resource, including through chaudron: turn it off first.
+- Names at Hetzner are suffixed with the stage, `forge-prod` for `forge`,
+  so that stages can share a project; `#:name` sets another one.
 - `#:labels` are your own; chaudron adds `chaudron/stage` to every resource.
 - Firewalls only filter incoming traffic. Their rules are not checked for
   drift.
@@ -142,7 +144,17 @@ Everything else changes in place. A few things to know:
 
 `hetzner-guix-system` runs Guix System on a server, configured by a file
 whose last expression is an `operating-system`, typically based on
-`make-hetzner-os` from `(gnu machine hetzner)`:
+`make-hetzner-os` from `(gnu machine hetzner)`. While it is loaded, the
+`CHAUDRON_SERVER_TYPE` environment variable holds the server's type:
+
+```scheme
+(operating-system
+  (inherit (make-hetzner-os (getenv "CHAUDRON_SERVER_TYPE")))
+  (host-name "forge")
+  ...)
+```
+
+Then:
 
 ```scheme
 (hetzner-guix-system "forge"

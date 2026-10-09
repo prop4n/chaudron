@@ -4,11 +4,13 @@
 (define-module (chaudron hetzner common)
   #:use-module (chaudron stage)
   #:use-module (chaudron hetzner api)
+  #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:export (resource-path
             resource-action
             list-prop
             sync-lists!
+            physical-name
             sorted-labels
             labels->json
             observe-metadata
@@ -40,6 +42,13 @@ element of NEW missing from OLD."
   (for-each add! (lset-difference equal? new old)))
 
 ;;; Names and labels.
+
+(define (physical-name resource-name)
+  "Return the name of RESOURCE-NAME at Hetzner: suffixed with the stage, so
+that several stages can share a project."
+  (match (current-stage)
+    (#f resource-name)               ;`ensure-resource' will complain
+    (stage (string-append resource-name "-" (stage-name stage)))))
 
 (define %stage-label "chaudron/stage")
 

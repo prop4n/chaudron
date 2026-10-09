@@ -139,7 +139,7 @@
                          #:key type location (image "debian-12")
                          (ssh-keys '()) (firewalls '()) (volumes '())
                          (networks '()) ipv4 ipv6 user-data backups?
-                         (labels '()) protected? (name resource-name))
+                         (labels '()) protected? name)
   "Declare a server.  Changing LOCATION or IMAGE replaces it, losing the
 data on its disk; everything else changes in place.  IPV4 and IPV6 are
 primary IPs, by default new ones are made; changing TYPE, IPV4 or IPV6
@@ -148,7 +148,7 @@ are only used when the server is created."
   (unless (and type location)
     (error "hetzner-server: #:type and #:location are required" resource-name))
   (ensure-resource server-provider resource-name
-                   `((name . ,name)
+                   `((name . ,(or name (physical-name resource-name)))
                      (type . ,type)
                      (location . ,location)
                      (image . ,image)

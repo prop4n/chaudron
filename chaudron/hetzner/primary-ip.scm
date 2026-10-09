@@ -54,14 +54,14 @@
 
 (define* (hetzner-primary-ip resource-name
                              #:key (type 'ipv4) location (labels '())
-                             protected? (name resource-name))
+                             protected? name)
   "Declare a public IP address of TYPE, 'ipv4 or 'ipv6, in LOCATION.  Give
 it to a server with its #:ipv4 or #:ipv6 argument: the server can then be
 replaced without changing address."
   (unless location
     (error "hetzner-primary-ip: #:location is required" resource-name))
   (ensure-resource primary-ip-provider resource-name
-                   `((name . ,name)
+                   `((name . ,(or name (physical-name resource-name)))
                      (type . ,(symbol->string type))
                      (location . ,location)
                      (labels . ,(sorted-labels labels))

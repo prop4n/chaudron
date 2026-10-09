@@ -72,12 +72,12 @@
 (define* (hetzner-network resource-name
                           #:key (ip-range "10.0.0.0/16") subnets
                           (zone "eu-central") (labels '()) protected?
-                          (name resource-name))
+                          name)
   "Declare a private network covering IP-RANGE, with SUBNETS (by default,
 the whole range) in network ZONE.  Give it to servers with their #:networks
 argument.  IP-RANGE can only grow."
   (ensure-resource network-provider resource-name
-                   `((name . ,name)
+                   `((name . ,(or name (physical-name resource-name)))
                      (ip-range . ,ip-range)
                      (zone . ,zone)
                      (subnets . ,(sort (or subnets (list ip-range)) string<?))

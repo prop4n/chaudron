@@ -28,13 +28,14 @@
 (parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
 
   (test-equal "creates an unassigned primary IP"
-    '("5.6.7.8" ((POST "/primary_ips")) ("ipv4" "fsn1" "unassigned" #f))
+    '("5.6.7.8" ((POST "/primary_ips"))
+      ("front-ip" "ipv4" "fsn1" "unassigned" #f))
     (with-api (`(201 . (("primary_ip" . (("id" . 11) ("ip" . "5.6.7.8")))
                         ("action" . null))))
       (let ((ip (in-stage "ip" (hetzner-primary-ip "front" #:location "fsn1"))))
         (list (output ip 'ip)
               (routes)
-              (fields (body 0) "type" "location" "assignee_type"
+              (fields (body 0) "name" "type" "location" "assignee_type"
                       "auto_delete")))))
 
   (test-equal "creates a protected volume"
@@ -52,7 +53,7 @@
             (assoc-ref (body 1) "delete"))))
 
   (define (volume-json size)
-    `(("id" . 5) ("name" . "data") ("size" . ,size)
+    `(("id" . 5) ("name" . "data-vol") ("size" . ,size)
       ("protection" . (("delete" . #t)))))
 
   (test-equal "grows a volume"
@@ -81,7 +82,7 @@
   (test-equal "adds a subnet"
     '(((GET "/networks/9") (POST "/networks/9/actions/add_subnet"))
       "10.0.2.0/24")
-    (with-api ((ok "network" '(("id" . 9) ("name" . "private")
+    (with-api ((ok "network" '(("id" . 9) ("name" . "private-net")
                                ("ip_range" . "10.0.0.0/16")
                                ("subnets" . #((("ip_range" . "10.0.1.0/24"))))))
                (done 1))
@@ -111,7 +112,7 @@
       (POST "/load_balancers/4/actions/update_service")
       (POST "/load_balancers/4/actions/add_service")
       (POST "/load_balancers/4/actions/remove_target"))
-    (with-api ((ok "load_balancer" '(("id" . 4) ("name" . "front")
+    (with-api ((ok "load_balancer" '(("id" . 4) ("name" . "front-lb")
                                      ("load_balancer_type" . (("name" . "lb11")))
                                      ("algorithm" . (("type" . "round_robin")))))
                (done 2) (done 3) (done 4))
@@ -159,13 +160,13 @@
        (POST "/servers/44/actions/poweron")
        (GET "/servers/44")))
     (begin
-      (with-api (`(201 . (("server" . ,(server-json 44 #:name "swap"))
+      (with-api (`(201 . (("server" . ,(server-json 44 #:name "swap-swap"))
                           ("action" . ,(action 1 "success")))))
         (in-stage "swap" (hetzner-server "swap" #:type "cx23"
                                          #:location "fsn1")))
-      (with-api ((ok "server" (server-json 44 #:name "swap"))
+      (with-api ((ok "server" (server-json 44 #:name "swap-swap"))
                  (done 2) (done 3) '(204 . #f) (done 4) (done 5)
-                 (ok "server" (server-json 44 #:name "swap" #:ipv4-id 11
+                 (ok "server" (server-json 44 #:name "swap-swap" #:ipv4-id 11
                                            #:ipv4 "5.6.7.8")))
         (let ((server (in-stage "swap" (hetzner-server "swap" #:type "cx23"
                                                        #:location "fsn1"
@@ -174,7 +175,7 @@
 
   (test-equal "corrects labels changed behind its back"
     '(((GET "/servers/44") (PUT "/servers/44")) (("chaudron/stage" . "swap")))
-    (with-api ((ok "server" (server-json 44 #:name "swap" #:ipv4-id 11
+    (with-api ((ok "server" (server-json 44 #:name "swap-swap" #:ipv4-id 11
                                          #:ipv4 "5.6.7.8"
                                          #:labels '(("role" . "db"))))
                '(200 . (("server" . ()))))

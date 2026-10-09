@@ -110,7 +110,10 @@
          (string-contains deployment "\"x86_64-linux\"")
          (string-contains deployment os-file)
          ;; Or activating the system would forget our signing key.
-         (string-contains deployment "/etc/guix/signing-key.pub")))
+         (string-contains deployment "/etc/guix/signing-key.pub")
+         ;; The configuration can use it rather than repeating it.
+         (string-contains deployment
+                          "(setenv \"CHAUDRON_SERVER_TYPE\" \"cx23\")")))
 
   (test-equal "does nothing when neither the configuration nor Guix changed"
     '(("guix" "describe") ("guix" "hash"))

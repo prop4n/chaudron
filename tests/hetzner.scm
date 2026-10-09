@@ -12,7 +12,7 @@
 
 (define* (server-json #:key (type "cx22"))
   `(("id" . 42)
-    ("name" . "forge")
+    ("name" . "forge-prod")
     ("server_type" . (("name" . ,type)))
     ("public_net" . (("ipv4" . (("ip" . "1.2.3.4")))
                      ("ipv6" . (("ip" . "2a01::/64")))))))
@@ -29,9 +29,9 @@
 
 (define reads
   ;; Responses to the reads done at the start of a run.
-  (list `(200 . (("ssh_key" . (("id" . 7) ("name" . "moi")
+  (list `(200 . (("ssh_key" . (("id" . 7) ("name" . "moi-prod")
                                ("fingerprint" . "aa")))))
-        `(200 . (("firewall" . (("id" . 3) ("name" . "web")))))))
+        `(200 . (("firewall" . (("id" . 3) ("name" . "web-prod")))))))
 
 (define read-routes
   '((GET "/ssh_keys/7") (GET "/firewalls/3") (GET "/servers/42")))
@@ -57,12 +57,13 @@
       (cons (output (quietly infra) 'ipv4) (routes))))
 
   (test-equal "sends the expected payloads"
-    '("ssh-ed25519 AAAA moi@forge" "prod"
+    '("ssh-ed25519 AAAA moi@forge" "prod" "forge-prod"
       #((("direction" . "in") ("protocol" . "tcp") ("port" . "22")
          ("source_ips" . #("0.0.0.0/0" "::/0"))))
       "cx22" #(7) #((("firewall" . 3))) "#cloud-config")
     (list (assoc-ref (body 0) "public_key")
           (assoc-ref (assoc-ref (body 0) "labels") "chaudron/stage")
+          (assoc-ref (body 2) "name")
           (vector-map (lambda (_ rule) (reverse rule))
                       (assoc-ref (body 1) "rules"))
           (assoc-ref (body 2) "server_type")

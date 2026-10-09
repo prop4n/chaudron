@@ -45,7 +45,7 @@
 
 (define* (hetzner-ssh-key resource-name
                           #:key public-key public-key-file (labels '())
-                          (name resource-name))
+                          name)
   "Declare an SSH key, given as a string with PUBLIC-KEY or read from
 PUBLIC-KEY-FILE, such as \"~/.ssh/id_ed25519.pub\".  Changing the key
 replaces it."
@@ -57,6 +57,6 @@ replaces it."
                     (error "hetzner-ssh-key: missing #:public-key or \
 #:public-key-file" resource-name)))))
     (ensure-resource ssh-key-provider resource-name
-                     `((name . ,name)
+                     `((name . ,(or name (physical-name resource-name)))
                        (public-key . ,(string-trim-both key))
                        (labels . ,(sorted-labels labels))))))

@@ -60,13 +60,13 @@
 
 (define* (hetzner-volume resource-name
                          #:key size location (format "ext4") (labels '())
-                         protected? (name resource-name))
+                         protected? name)
   "Declare a volume of SIZE gigabytes in LOCATION.  Give it to a server with
 its #:volumes argument; it is then mounted under /mnt.  SIZE can only grow."
   (unless (and size location)
     (error "hetzner-volume: #:size and #:location are required" resource-name))
   (ensure-resource volume-provider resource-name
-                   `((name . ,name)
+                   `((name . ,(or name (physical-name resource-name)))
                      (size . ,size)
                      (location . ,location)
                      (format . ,format)

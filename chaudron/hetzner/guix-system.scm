@@ -51,6 +51,11 @@
                                  (guix gexp))
                    port)
      (pretty-print %authorize port)
+     ;; Tell the configuration which server it runs on, for
+     ;; `make-hetzner-os'.
+     (pretty-print `(setenv "CHAUDRON_SERVER_TYPE"
+                            ,(assq-ref props 'server-type))
+                   port)
      (pretty-print
       `(list (machine
               (operating-system (authorize (load ,(assq-ref props 'os))))
@@ -109,7 +114,8 @@ when either changes."
                               (identity "~/.ssh/id_ed25519"))
   "Run Guix System on SERVER, a `hetzner-server', configured by OS, a file
 whose last expression is an operating system, typically based on
-`make-hetzner-os' from (gnu machine hetzner).  SSH-KEY is the
+`make-hetzner-os' from (gnu machine hetzner).  The type of SERVER is in the
+CHAUDRON_SERVER_TYPE environment variable while OS is loaded.  SSH-KEY is the
 `hetzner-ssh-key' of IDENTITY, the private key used to reach the server.
 
 The first time, the server's disk is erased to install Guix System.  Then

@@ -126,14 +126,14 @@ Services are identified by their listen port."
                                 #:key (type "lb11") location
                                 (algorithm 'round-robin) (services '())
                                 (targets '()) network (labels '()) protected?
-                                (name resource-name))
+                                name)
   "Declare a load balancer in LOCATION, sending the traffic of SERVICES,
 built with `forward', to TARGETS, a list of servers.  With NETWORK, it
 reaches them through that private network."
   (unless location
     (error "hetzner-load-balancer: #:location is required" resource-name))
   (ensure-resource load-balancer-provider resource-name
-                   `((name . ,name)
+                   `((name . ,(or name (physical-name resource-name)))
                      (type . ,type)
                      (location . ,location)
                      (algorithm . ,(case algorithm

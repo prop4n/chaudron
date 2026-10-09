@@ -65,11 +65,11 @@ to PORT, a number or a range such as \"8000-8100\", from the FROM networks."
                   #:delete delete-firewall)))
 
 (define* (hetzner-firewall resource-name
-                           #:key (rules '()) (labels '()) (name resource-name))
+                           #:key (rules '()) (labels '()) name)
   "Declare a firewall allowing incoming traffic matching RULES, built with
 `allow-in'.  Outgoing traffic is always allowed."
   (ensure-resource firewall-provider resource-name
-                   `((name . ,name)
+                   `((name . ,(or name (physical-name resource-name)))
                      (rules . ,rules)
                      (labels . ,(sorted-labels labels)))))
 
