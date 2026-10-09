@@ -3,6 +3,9 @@
              (chaudron hetzner)
              (ice-9 match))
 
+;; HCLOUD_TOKEN and CLOUDFLARE_API_TOKEN, unless already set.
+(load-env-file ".env")
+
 (define (deploy dry-run?)
   (with-stage "prod" #:dry-run? dry-run?
     (define-values (key web ip data)

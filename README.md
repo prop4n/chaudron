@@ -17,6 +17,10 @@ converges the real infrastructure right away and returns its outputs.
 HCLOUD_TOKEN=... guile -L . deploy.scm
 ```
 
+Tokens can also live in a `.env` file, read with `(load-env-file ".env")`
+at the top of the script: one `NAME=VALUE` per line, variables already set
+in the environment taking precedence. Keep it out of version control.
+
 ## How it works
 
 - `with-stage` loads the state of the stage from `.chaudron/<stage>/`, runs
@@ -240,6 +244,7 @@ guile -L . tests/hetzner.scm
 guile -L . tests/hetzner-resources.scm
 guile -L . tests/hetzner-guix.scm
 guile -L . tests/cloudflare.scm
+guile -L . tests/env.scm
 ```
 
 Dependencies: Guile 3, guile-json, guile-gnutls (`guix shell -m manifest.scm`).

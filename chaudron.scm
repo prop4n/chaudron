@@ -2,6 +2,7 @@
 
 (define-module (chaudron)
   #:use-module (chaudron concurrency)
+  #:use-module (chaudron env)
   #:use-module (chaudron resource)
   #:use-module (chaudron state)
   #:use-module (chaudron stage)
@@ -23,4 +24,5 @@
                unknown?
                concurrently
                call-concurrently
+               load-env-file
                state-directory))
