@@ -5,6 +5,7 @@
   #:use-module (chaudron converge)
   #:use-module (chaudron resource)
   #:use-module (chaudron state)
+  #:use-module (ice-9 match)
   #:use-module (ice-9 threads)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
@@ -57,6 +58,7 @@ threads at once."
          (kind (provider-kind provider))
          (key (cons kind name))
          (id (resource-id kind name))
+         (depends-on (dependencies props))
          (props (resolve-references props))
          (old (with-mutex (stage-lock stage)
                 (when (member key (stage-seen stage))
@@ -72,7 +74,8 @@ threads at once."
                        (name . ,name)
                        (seq . ,(if old (assq-ref old 'seq) (next-seq stage)))
                        (props . ,props)
-                       (outputs . ,outputs))))
+                       (outputs . ,outputs)
+                       (depends-on . ,depends-on))))
           (unless (equal? entry old)
             (save-entry! (stage-name stage) entry)
             (hash-set! (stage-entries stage) key entry)))))
@@ -84,10 +87,25 @@ threads at once."
   (or (lookup-provider (assq-ref entry 'kind))
       (error "no provider loaded for kind" (assq-ref entry 'kind))))
 
+(define (deletion-order entries)
+  "Sort ENTRIES so that each comes before the ones it depends on, and
+otherwise the most recently created first."
+  (let loop ((pending (sort entries (lambda (a b)
+                                      (> (assq-ref a 'seq) (assq-ref b 'seq)))))
+             (ordered '()))
+    (define (needed? entry)
+      (any (lambda (other)
+             (member (entry-key entry) (or (assq-ref other 'depends-on) '())))
+           pending))
+    (match pending
+      (() (reverse ordered))
+      ((first . _)
+       (let ((next (or (find (negate needed?) pending) first)))
+         (loop (delete next pending) (cons next ordered)))))))
+
 (define (destroy-entries! stage entries)
-  "Delete ENTRIES, most recently created first."
-  (let ((entries (sort entries (lambda (a b)
-                                 (> (assq-ref a 'seq) (assq-ref b 'seq))))))
+  "Delete ENTRIES, each before the ones it depends on."
+  (let ((entries (deletion-order entries)))
     (for-each entry-provider entries)   ;fail before deleting anything
     (for-each (lambda (entry)
                 (let ((kind (assq-ref entry 'kind))

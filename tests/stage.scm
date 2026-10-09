@@ -159,6 +159,18 @@
     '()
     (run-calls (destroy-stage "dev")))
 
+  (test-equal "deletes resources before those they depend on, even older ones"
+    '(server firewall)
+    (let* ((server (with-stage "deps" (output (fake-thing "server") 'id)))
+           ;; The firewall is created after the server, then given to it.
+           (firewall (with-stage "deps"
+                       (let ((firewall (fake-thing "firewall")))
+                         (fake-thing "server" #:refs (list firewall))
+                         (output firewall 'id)))))
+      (map (lambda (call)
+             (if (equal? call `(delete ,server)) 'server 'firewall))
+           (run-calls (destroy-stage "deps")))))
+
   (test-equal "destroying stops at a resource that refuses to be deleted"
     '(deleted-b-only kept-a recreated-b-only)
     (let* ((ids (with-stage "locks"

@@ -9,6 +9,7 @@
   #:export (report
             perform
             resolve-references
+            dependencies
             observe
             converge))
 
@@ -38,6 +39,15 @@ PLANNED instead of calling ACTION."
         ((pair? props) (cons (resolve-references (car props))
                              (resolve-references (cdr props))))
         (else props)))
+
+(define (dependencies props)
+  "Return the (kind . name) of every resource found in PROPS."
+  (cond ((resource? props)
+         (list (cons (resource-kind props) (resource-name props))))
+        ((pair? props)
+         (delete-duplicates (append (dependencies (car props))
+                                    (dependencies (cdr props)))))
+        (else '())))
 
 (define (needs-replacement? provider old new)
   (or (not (provider-update provider))
