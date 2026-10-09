@@ -27,7 +27,8 @@
                       #:ssh-keys (list key)
                       #:firewalls (list web)
                       #:ipv4 ip
-                      #:volumes (list data)))
+                      #:volumes (list data)
+                      #:protected? #t))
 
     (define nginx
       (cloudflare-dns-record "nginx"

@@ -19,6 +19,9 @@
 ;; The "real" infrastructure: id -> size.
 (define world (make-hash-table))
 
+;; Ids of resources that refuse to be deleted, like protected ones.
+(define protected '())
+
 (define fake
   (make-provider 'fake-thing
                  #:create (lambda (name props)
@@ -38,6 +41,8 @@
                                          (assq-ref new 'size))
                               outputs))
                  #:delete (lambda (outputs)
+                            (when (memv (assq-ref outputs 'id) protected)
+                              (error "protected" (assq-ref outputs 'id)))
                             (with-mutex lock
                               (record! 'delete (assq-ref outputs 'id))
                               (hash-remove! world (assq-ref outputs 'id))))
@@ -153,6 +158,23 @@
   (test-equal "state survives across runs (no-op after destroy)"
     '()
     (run-calls (destroy-stage "dev")))
+
+  (test-equal "destroying stops at a resource that refuses to be deleted"
+    '(deleted-b-only kept-a recreated-b-only)
+    (let* ((ids (with-stage "locks"
+                  (map (lambda (name) (output (fake-thing name) 'id))
+                       '("a" "b"))))
+           (a (car ids))
+           (b (cadr ids)))
+      (set! protected (list a))
+      (let* ((destroyed (run-calls (false-if-exception (destroy-stage "locks"))))
+             (kept? (hash-ref world a))
+             (applied (run-calls (with-stage "locks"
+                                   (fake-thing "a") (fake-thing "b")))))
+        (set! protected '())
+        (list (and (equal? destroyed `((delete ,b))) 'deleted-b-only)
+              (and kept? 'kept-a)
+              (and (equal? applied '((create "b"))) 'recreated-b-only)))))
 
   ;; Dry runs.
 
