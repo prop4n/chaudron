@@ -1,6 +1,7 @@
 ;;; A scripted fake of the Hetzner Cloud and Cloudflare APIs, for tests.
 
 (define-module (tests fake-api)
+  #:use-module (chaudron)
   #:use-module (chaudron cloudflare api)
   #:use-module (chaudron hetzner api)
   #:use-module (json)
@@ -50,7 +51,8 @@
                  (hetzner-sleep (const #t))
                  (cloudflare-transport fake-transport)
                  (cloudflare-token "secret")
-                 (cloudflare-sleep (const #t)))
+                 (cloudflare-sleep (const #t))
+                 (exit-on-failure? #f))
     (thunk)))
 
 (define-syntax-rule (with-api (response ...) body ...)

@@ -13,6 +13,8 @@
                stage-name
                ensure-resource
                report
+               chaudron-error?
+               exit-on-failure?
                make-provider
                register-provider!
                resource?

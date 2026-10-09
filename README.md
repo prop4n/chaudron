@@ -39,7 +39,13 @@ in the environment taking precedence. Keep it out of version control.
   resources again.
 - Resources can be passed to other resources; they stand for their `id`.
   `(output resource 'ipv4)` gives any other output.
-- `(destroy-stage "prod")` deletes everything in a stage.
+- `(destroy-stage "prod")` deletes everything in a stage, each resource
+  before the ones it was given.
+- When an operation fails, a script stops with a one-line message and exit
+  status 1, e.g. `chaudron: could not delete hetzner-server/forge: server
+  deletion is protected`. At the REPL, or with `(exit-on-failure? #f)`, a
+  `&chaudron-error` is raised instead; it keeps the original error, so that
+  `hetzner-error?` and the like still recognize it.
 
 ### Dry runs
 

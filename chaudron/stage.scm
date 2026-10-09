@@ -5,6 +5,7 @@
   #:use-module (chaudron converge)
   #:use-module (chaudron resource)
   #:use-module (chaudron state)
+  #:use-module (ice-9 exceptions)
   #:use-module (ice-9 match)
   #:use-module (ice-9 threads)
   #:use-module (srfi srfi-1)
@@ -15,8 +16,10 @@
             call-with-stage
             with-stage
             ensure-resource
-            destroy-stage)
-  #:re-export (report))
+            destroy-stage
+            exit-on-failure?)
+  #:re-export (report
+               chaudron-error?))
 
 (define-record-type <stage>
   (make-stage name dry-run? entries seen lock)
@@ -28,6 +31,20 @@
   (lock stage-lock))                     ;guards ENTRIES, SEEN and the state
 
 (define current-stage (make-parameter #f))
+
+;; Whether a failed operation ends the program with a short message, rather
+;; than raising a &chaudron-error: by default, in scripts but not at the REPL.
+(define exit-on-failure? (make-parameter 'auto))
+
+(define (call-with-failure-handling thunk)
+  (if (match (exit-on-failure?)
+        ('auto (batch-mode?))
+        (exit? exit?))
+      (guard (e ((chaudron-error? e)
+                 (report "~a" (exception-message e))
+                 (exit 1)))
+        (thunk))
+      (thunk)))
 
 (define (entry-key entry)
   (cons (assq-ref entry 'kind) (assq-ref entry 'name)))
@@ -127,12 +144,14 @@ otherwise the most recently created first."
   "Call THUNK within stage NAME.  If it returns normally, delete the
 resources of the stage it did not declare.  With DRY-RUN?, only report what
 would be done."
-  (let ((stage (load-stage name dry-run?)))
-    (parameterize ((current-stage stage))
-      (call-with-values thunk
-        (lambda results
-          (destroy-entries! stage (orphans stage))
-          (apply values results))))))
+  (call-with-failure-handling
+   (lambda ()
+     (let ((stage (load-stage name dry-run?)))
+       (parameterize ((current-stage stage))
+         (call-with-values thunk
+           (lambda results
+             (destroy-entries! stage (orphans stage))
+             (apply values results))))))))
 
 (define-syntax with-stage
   (syntax-rules ()
@@ -143,6 +162,8 @@ would be done."
 
 (define* (destroy-stage name #:key dry-run?)
   "Delete every resource of stage NAME, or with DRY-RUN?, only report it."
-  (let ((stage (load-stage name dry-run?)))
-    (parameterize ((current-stage stage))
-      (destroy-entries! stage (stage-entry-list stage)))))
+  (call-with-failure-handling
+   (lambda ()
+     (let ((stage (load-stage name dry-run?)))
+       (parameterize ((current-stage stage))
+         (destroy-entries! stage (stage-entry-list stage)))))))

@@ -32,7 +32,7 @@
 
     (define nginx
       (cloudflare-dns-record "nginx"
-                             #:zone "enzolegrand.dev"
+                             #:zone "mondomaine.fr"
                              #:content (output forge 'ipv4)))
 
     (hetzner-guix-system "forge"

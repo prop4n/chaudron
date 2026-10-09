@@ -85,7 +85,8 @@
       (routes)))
 
   (test-equal "raises API errors"
-    '(400 81053 "An A, AAAA, or CNAME record with that host already exists.")
+    '(400 81053 "could not create cloudflare-dns-record/git: An A, AAAA, or \
+CNAME record with that host already exists.")
     (with-api (zones
                '(400 . (("success" . #f)
                         ("errors"

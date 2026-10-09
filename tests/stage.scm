@@ -73,7 +73,8 @@
 
 (test-begin "stage")
 
-(parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
+(parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX"))
+               (exit-on-failure? #f))
 
   (test-equal "creates a new resource"
     '((create "a"))
@@ -172,7 +173,7 @@
            (run-calls (destroy-stage "deps")))))
 
   (test-equal "destroying stops at a resource that refuses to be deleted"
-    '(deleted-b-only kept-a recreated-b-only)
+    '(deleted-b-only clear-message exits-in-scripts kept-a recreated-b-only)
     (let* ((ids (with-stage "locks"
                   (map (lambda (name) (output (fake-thing name) 'id))
                        '("a" "b"))))
@@ -180,11 +181,28 @@
            (b (cadr ids)))
       (set! protected (list a))
       (let* ((destroyed (run-calls (false-if-exception (destroy-stage "locks"))))
+             (failure (guard (e ((chaudron-error? e) (exception-message e)))
+                        (destroy-stage "locks")))
+             (error-port (open-output-string))
+             (status (catch 'quit
+                       (lambda ()
+                         (parameterize ((current-error-port error-port)
+                                        (exit-on-failure? #t))
+                           (destroy-stage "locks")))
+                       (lambda (key status) status)))
              (kept? (hash-ref world a))
              (applied (run-calls (with-stage "locks"
                                    (fake-thing "a") (fake-thing "b")))))
         (set! protected '())
         (list (and (equal? destroyed `((delete ,b))) 'deleted-b-only)
+              (and (equal? failure
+                           (format #f "could not delete fake-thing/a: \
+protected ~a" a))
+                   'clear-message)
+              (and (eqv? status 1)
+                   (string-contains (get-output-string error-port)
+                                    "chaudron: could not delete fake-thing/a")
+                   'exits-in-scripts)
               (and kept? 'kept-a)
               (and (equal? applied '((create "b"))) 'recreated-b-only)))))
 
