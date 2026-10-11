@@ -55,17 +55,31 @@ See [Writing a provider](https://chaudron.dev/docs/writing-a-provider/).
 
 ## Getting started
 
-chaudron needs Guile 3, guile-json, guile-gnutls and guile-gcrypt. Guix is
-the easiest way to get them, not a requirement.
+With Guix, the repository is a channel:
+
+```scheme
+(channel
+ (name 'chaudron)
+ (url "https://github.com/prop4n/chaudron")
+ (branch "main"))
+```
 
 ```sh
+guix pull && guix install chaudron
+guile deploy.scm
+```
+
+On Debian or Ubuntu:
+
+```sh
+sudo apt install guile-3.0 guile-json guile-gnutls guile-gcrypt
 git clone https://github.com/prop4n/chaudron
-guix shell -m chaudron/lib/manifest.scm
 guile -L chaudron/lib deploy.scm
 ```
 
 Tokens come from the environment, `HCLOUD_TOKEN` or `CLOUDFLARE_API_TOKEN`,
-or from a `.env` file read with `load-env-file`.
+or from a `.env` file read with `load-env-file`. See
+[Installation](https://chaudron.dev/docs/installation/) for the details.
 
 [Your first deployment](https://chaudron.dev/docs/first-deployment/) walks
 through a server at Hetzner, from nothing to `ssh`.

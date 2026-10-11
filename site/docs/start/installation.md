@@ -1,73 +1,80 @@
 title: Installation
 order: 2
-description: What chaudron needs, with Guix or without it.
+description: How to get chaudron, with Guix, or on Debian and Ubuntu.
 ---
 
-chaudron is a library, not a program: you install what it needs, then tell
-Guile where to find it.
+chaudron is a Guile library. It needs Guile 3 and three libraries:
+[guile-json](https://github.com/aconchillo/guile-json),
+[guile-gnutls](https://gitlab.com/gnutls/guile), for HTTPS, and
+[guile-gcrypt](https://notabug.org/cwebber/guile-gcrypt), for Cloudflare
+Workers.
 
-## What it needs
+| System | Way |
+|---|---|
+| Guix, or any distribution with Guix installed | [the Guix channel](#with-guix) |
+| Debian, Ubuntu | [apt](#on-debian-and-ubuntu) |
 
-- [Guile](https://www.gnu.org/software/guile/) 3.0
-- [guile-json](https://github.com/aconchillo/guile-json)
-- [guile-gnutls](https://gitlab.com/gnutls/guile), for HTTPS
-- [guile-gcrypt](https://notabug.org/cwebber/guile-gcrypt), for Cloudflare
-  Workers
-
-Guix is the easiest way to get them, but it is not required.
-
-## Getting the library
-
-chaudron is not packaged yet. Clone it, the library is in `lib/`:
-
-```sh
-$ git clone https://github.com/prop4n/chaudron
-```
+Elsewhere, install Guix first: it runs on any distribution.
 
 ## With Guix
 
-`lib/manifest.scm` lists the dependencies. Open a shell with them:
+The repository is a Guix channel. Add it to `~/.config/guix/channels.scm`:
 
-```sh
-$ guix shell -m chaudron/lib/manifest.scm
+```scheme ~/.config/guix/channels.scm
+(cons (channel
+       (name 'chaudron)
+       (url "https://github.com/prop4n/chaudron")
+       (branch "main"))
+      %default-channels)
 ```
 
-## Without Guix
-
-Install Guile 3, guile-json, guile-gnutls and guile-gcrypt with your
-distribution's package manager. Package names vary from one distribution to
-another, and some may not package them all: then build them from their
-sources.
-
-> [!NOTE]
-> chaudron itself has only been used on Guix so far. If it works, or does
-> not, on your distribution, please say so.
-
-## Running a deployment
-
-Give Guile the path of the library with `-L`:
+Then:
 
 ```sh
+$ guix pull
+$ guix install chaudron
+$ guile deploy.scm
+```
+
+Or, without changing your channels, from a clone of the repository:
+
+```sh
+$ guix shell -f guix.scm guile -- guile deploy.scm
+```
+
+## On Debian and Ubuntu
+
+Debian stable and Ubuntu 24.04 package everything chaudron needs:
+
+```sh
+$ sudo apt install guile-3.0 guile-json guile-gnutls guile-gcrypt
+$ git clone https://github.com/prop4n/chaudron
 $ guile -L chaudron/lib deploy.scm
 ```
 
-Or set it once in your shell:
+In a minimal image, such as a container, add `netbase` and
+`ca-certificates`: without them, HTTPS requests fail with
+`Servname not supported for ai_socktype`.
+
+To find the library without `-L`:
 
 ```sh
 $ export GUILE_LOAD_PATH=$HOME/src/chaudron/lib
 $ guile deploy.scm
 ```
 
-To check that everything is found:
+## Checking it works
 
 ```sh
-$ guile -L chaudron/lib -c '(use-modules (chaudron)) (display "ok\n")'
+$ guile -c '(use-modules (chaudron)) (display "ok\n")'
 ```
+
+Add `-L chaudron/lib` if the library is not installed.
 
 ## For Guix System on Hetzner
 
-The [`hetzner-guix-system`](/docs/guix-system/) resource is the only one
-that needs more, on the machine running chaudron:
+The [`hetzner-guix-system`](/docs/guix-system/) resource needs more, on the
+machine running chaudron:
 
 - `guix`, to run `guix deploy`; Guix can be installed on any distribution,
   you do not need Guix System;
