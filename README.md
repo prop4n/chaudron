@@ -272,7 +272,10 @@ resource no longer exists.
 
 ## Development
 
+The library lives in `lib/`. Everything below runs from there:
+
 ```sh
+cd lib
 guile -L . tests/stage.scm
 guile -L . tests/hetzner.scm
 guile -L . tests/hetzner-resources.scm
