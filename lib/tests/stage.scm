@@ -2,6 +2,7 @@
 
 (use-modules (chaudron)
              (ice-9 exceptions)
+             (ice-9 match)
              (ice-9 threads)
              (srfi srfi-1)
              (srfi srfi-64))
@@ -72,6 +73,10 @@
   (ensure-resource fake name `((size . ,size) (zone . ,zone) (refs . ,refs))))
 
 (define log "")
+
+(define-syntax-rule (quietly-run body ...)
+  (parameterize ((current-error-port (%make-void-port "w")))
+    body ...))
 
 (define-syntax-rule (run-calls body ...)
   (begin
@@ -234,6 +239,17 @@ protected ~a" a))
   (test-equal "is then complete"
     '()
     (run-calls (with-stage "half" (fake-thing "h" #:size 5))))
+
+  (test-equal "reports errors that come with no list of irritants"
+    "could not create broken-thing/b: no matching pattern"
+    (let ((broken (make-provider 'broken-thing
+                                 ;; A failed match raises an error whose
+                                 ;; irritants are #f.
+                                 #:create (lambda (name props)
+                                            (match #f ((x) x)))
+                                 #:delete (const #t))))
+      (guard (e ((chaudron-error? e) (exception-message e)))
+        (quietly-run (with-stage "broken" (ensure-resource broken "b" '()))))))
 
   ;; Moving resources.
 

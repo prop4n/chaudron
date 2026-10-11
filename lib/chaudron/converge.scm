@@ -37,9 +37,11 @@
   (let ((message (if (exception-with-message? exception)
                      (exception-message exception)
                      (format #f "~s" exception)))
-        (irritants (if (exception-with-irritants? exception)
-                       (exception-irritants exception)
-                       '())))
+        ;; Some errors, such as failed matches, have #f as irritants.
+        (irritants (match (and (exception-with-irritants? exception)
+                               (exception-irritants exception))
+                     ((? list? irritants) irritants)
+                     (_ '()))))
     (cond ((null? irritants)
            message)
           ((string-index message #\~)  ;a format string, as Guile's own errors
