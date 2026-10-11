@@ -431,6 +431,21 @@ h1 {
 
 .split > div > p { margin: 1rem 0 0; color: var(--muted); }
 
+.points {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2rem;
+  margin: 2.5rem 0 0;
+  padding: 0;
+}
+
+.points p { margin: 0.6rem 0 0; color: var(--muted); }
+
+.scheme-code { margin-top: 3rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.more { margin: 2rem 0 0; }
+
 .sequence {
   margin: 1.5rem 0 0;
   padding-left: 1.4rem;
@@ -504,12 +519,15 @@ h1 {
   .hero-grid, .split, .specimens { grid-template-columns: minmax(0, 1fr); }
   .specimen-state { grid-row: auto; }
   .steps { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .points { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scheme-code { grid-template-columns: minmax(0, 1fr); }
   .band { padding: 3.5rem 0; }
 }
 
 @media (max-width: 40rem) {
   .masthead nav a:not(:last-child) { display: none; }
   .providers > div { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+  .points { grid-template-columns: minmax(0, 1fr); }
   .pot { font-size: 0.78rem; }
   .pot pre, .pot-title, .pot-run { padding-left: 1rem; padding-right: 1rem; }
 }

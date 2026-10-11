@@ -44,6 +44,40 @@
                      #:os \"forge-os.scm\"
                      #:ssh-key key)")
 
+(define %website-code "\
+(define (website name key)
+  (let* ((domain (string-append name \".example.com\"))
+         (server (hetzner-server name #:type \"cx23\"
+                                      #:location \"fsn1\"
+                                      #:ssh-keys (list key))))
+    (cloudflare-dns-record name #:zone \"example.com\"
+                           #:content (output server 'ipv4))
+    (hetzner-guix-system name
+                         #:server server
+                         #:os (write-system! name domain)
+                         #:ssh-key key)))
+
+(website \"blog\" key)
+(website \"shop\" key)")
+
+(define %system-code "\
+(define (system-of domain)
+  `(operating-system
+     (inherit %base)
+     (services
+      (cons* (service nginx-service-type
+               (nginx-configuration
+                (server-blocks
+                 (list (nginx-server-configuration
+                        (server-name (list ,domain))
+                        (listen '(\"443 ssl\")))))))
+             (service certbot-service-type
+               (certbot-configuration
+                (certificates
+                 (list (certificate-configuration
+                        (domains (list ,domain)))))))
+             (operating-system-user-services %base)))))")
+
 (define %provider-code "\
 (define thing-provider
   (register-provider!
@@ -97,6 +131,41 @@
                              (report "create hetzner-server/forge"
                                      "create cloudflare-dns-record/git"))
                        #:class "hero-pot"))))
+
+(define (scheme-section)
+  `(section (@ (id "scheme") (class "band"))
+            (div (@ (class "wrap"))
+                 (h2 "One language, from the cloud to the system")
+                 (p (@ (class "intro"))
+                    "Infrastructure usually takes two tools: one for the "
+                    "servers and the DNS, another, with its own language, to "
+                    "configure the machines. Here both are Scheme, in the "
+                    "same program.")
+                 (ul (@ (class "points"))
+                     (li (h3 "The machines are declared too")
+                         (p "With Guix System, a server is not configured "
+                            "step by step: it is described whole. Deploying "
+                            "the same description gives the same system, and "
+                            "each deployment can be rolled back."))
+                     (li (h3 "Procedures, not templates")
+                         (p "A website, its server, its DNS record and its "
+                            "system are one procedure. Two websites are two "
+                            "calls, with loops and modules for the rest."))
+                     (li (h3 "Code is data")
+                         (p "The system of a machine is a Scheme expression: "
+                            "the program builds it, with its values in place, "
+                            "rather than filling text templates."))
+                     (li (h3 "Everything pinned")
+                         (p "The versions of Guix, of chaudron and of every "
+                            "package on the servers are fixed by the "
+                            "project's lock: the same code, the same result.")))
+                 (div (@ (class "split scheme-code"))
+                      ,(pot "deploy.scm" (list (scheme %website-code)))
+                      ,(pot "the system, built by the program"
+                            (list (scheme %system-code))))
+                 (p (@ (class "more"))
+                    (a (@ (href "/docs/why-scheme/"))
+                       "Why Scheme, with the whole example")))))
 
 (define (run-section)
   `(section (@ (id "run") (class "band"))
@@ -237,6 +306,7 @@
                                 #:action '("Docs" . "/docs/"))
                         `(main
                           ,(hero)
+                          ,(scheme-section)
                           ,(run-section)
                           ,(open-section)
                           ,(guix-section)
