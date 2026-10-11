@@ -47,7 +47,7 @@ and undoes it.
 |---|---|
 | Hetzner Cloud | servers, SSH keys, firewalls, primary IPs, volumes, networks, load balancers, snapshots |
 | Guix System | Guix System installed on Hetzner servers, then deployed with `guix deploy` |
-| Cloudflare | DNS records, Workers serving static sites |
+| Cloudflare | DNS records, Workers, KV namespaces, D1 databases |
 | Livebox | port forwards and DHCP leases of an Orange Livebox (experimental) |
 
 Writing a provider takes a few procedures: create, read, update, delete.

@@ -1,4 +1,4 @@
-;;; Cloudflare Workers serving a directory of static files.
+;;; Cloudflare Workers: code, static files, and what the code is given.
 
 (define-module (chaudron cloudflare worker)
   #:use-module (chaudron resource)
@@ -10,10 +10,13 @@
   #:use-module (ice-9 binary-ports)
   #:use-module (ice-9 ftw)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 textual-ports)
   #:use-module (json)
   #:use-module (rnrs bytevectors)
   #:use-module (srfi srfi-1)
-  #:export (cloudflare-worker))
+  #:export (cloudflare-worker
+            kv-binding
+            d1-binding))
 
 (define %compatibility-date "2025-01-01")
 
@@ -127,15 +130,57 @@ Worker NAME, and return the token to publish them with."
           session-token
           (vector->list (or (json-ref session "buckets") #())))))
 
-(define (publish! account name directory)
-  "Publish the Worker NAME, serving the files of DIRECTORY."
-  (cloudflare-upload
-   'PUT (account-path account "/workers/scripts/" name)
-   (list (list "metadata" #f "application/json"
-               (scm->json-string
-                `(("assets" . (("jwt" . ,(upload-assets account name
-                                                        directory))))
-                  ("compatibility_date" . ,%compatibility-date)))))))
+(define (secret-value name)
+  (or (getenv name)
+      (error "cloudflare-worker: environment variable of secret not set" name)))
+
+(define (publish! account props)
+  "Publish the Worker of PROPS: its script, its files, and what its code
+is given."
+  (let* ((name (assq-ref props 'name))
+         (script (assq-ref props 'script))
+         (directory (assq-ref props 'directory))
+         (bindings
+          (append (map (match-lambda
+                         ((variable . value)
+                          `(("type" . "plain_text") ("name" . ,variable)
+                            ("text" . ,value))))
+                       (assq-ref props 'vars))
+                  (map (match-lambda
+                         ((secret . _)
+                          `(("type" . "secret_text") ("name" . ,secret)
+                            ("text" . ,(secret-value secret)))))
+                       (assq-ref props 'secrets))
+                  (if (and script directory)
+                      '((("type" . "assets") ("name" . "ASSETS")))
+                      '())
+                  (assq-ref props 'bindings))))
+    (cloudflare-upload
+     'PUT (account-path account "/workers/scripts/" name)
+     (cons (list "metadata" #f "application/json"
+                 (scm->json-string
+                  `(("compatibility_date" . ,%compatibility-date)
+                    ,@(if script
+                          `(("main_module" . ,(basename script)))
+                          '())
+                    ,@(if directory
+                          `(("assets"
+                             . (("jwt" . ,(upload-assets account name
+                                                         directory)))))
+                          '())
+                    ("bindings" . ,(list->vector bindings)))))
+           (if script
+               (list (list (basename script) (basename script)
+                           "application/javascript+module"
+                           (call-with-input-file script get-string-all)))
+               '())))))
+
+(define (schedule! account name crons)
+  "Run the Worker NAME at the times of CRONS."
+  (cloudflare-request 'PUT (account-path account "/workers/scripts/" name
+                                         "/schedules")
+                      (list->vector (map (lambda (cron) `(("cron" . ,cron)))
+                                         crons))))
 
 ;;; Domains.
 
@@ -189,7 +234,9 @@ the outputs about it."
   (let* ((account (account-id))
          (name (assq-ref props 'name))
          (outputs `((name . ,name) (account-id . ,account))))
-    (publish! account name (assq-ref props 'directory))
+    (publish! account props)
+    (unless (null? (assq-ref props 'crons))
+      (schedule! account name (assq-ref props 'crons)))
     (created! (append outputs '((domain-id . #f) (url . #f)))
               props '((domain . unreachable)))
     (append outputs (serve! account name (assq-ref props 'domain)))))
@@ -205,8 +252,11 @@ the outputs about it."
     (not (equal? (assq-ref old key) (assq-ref new key))))
   (let ((account (assq-ref outputs 'account-id))
         (name (assq-ref outputs 'name)))
-    (when (or (changed? 'assets) (changed? 'directory))
-      (publish! account name (assq-ref new 'directory)))
+    (when (any changed? '(assets directory script script-hash vars secrets
+                          bindings))
+      (publish! account new))
+    (when (changed? 'crons)
+      (schedule! account name (assq-ref new 'crons)))
     (if (changed? 'domain)
         (begin
           (and=> (assq-ref outputs 'domain-id)
@@ -231,15 +281,34 @@ the outputs about it."
                   #:delete delete-worker
                   #:replace-on '(name))))
 
-(define* (cloudflare-worker resource-name #:key assets domain name)
-  "Declare a Worker serving the files of ASSETS, a directory, at DOMAIN, a
-host name in a zone managed by Cloudflare, or else on its workers.dev
-address.  It is deployed again whenever a file changes."
-  (unless assets
-    (error "cloudflare-worker: #:assets is required" resource-name))
-  (unless (file-is-directory? assets)
+(define (kv-binding variable namespace)
+  "Give the code, as VARIABLE, the KV NAMESPACE."
+  `(("type" . "kv_namespace") ("name" . ,variable) ("namespace_id" . ,namespace)))
+
+(define (d1-binding variable database)
+  "Give the code, as VARIABLE, the D1 DATABASE."
+  `(("type" . "d1") ("name" . ,variable) ("id" . ,database)))
+
+(define (file-digest file)
+  (bytevector->base16-string
+   (sha256 (call-with-input-file file get-bytevector-all #:binary #t))))
+
+(define* (cloudflare-worker resource-name
+                            #:key script assets domain (vars '()) (secrets '())
+                            (crons '()) (bindings '()) name)
+  "Declare a Worker running SCRIPT, a JavaScript module, and serving the
+files of ASSETS, a directory; it needs one or both.  It is served at
+DOMAIN, a host name in a zone managed by Cloudflare, or else on its
+workers.dev address.  VARS, an association list of strings, and SECRETS, a
+list of names of environment variables, are given to the code, along with
+BINDINGS, made with `kv-binding' and `d1-binding'.  CRONS are the times to
+run its scheduled handler, such as \"*/30 * * * *\".  It is published again
+whenever a file, or any of these, changes."
+  (unless (or script assets)
+    (error "cloudflare-worker: #:script or #:assets is required" resource-name))
+  (when (and assets (not (file-is-directory? assets)))
     (error "cloudflare-worker: not a directory" assets))
-  (let ((directory (string-trim-right assets #\/)))
+  (let ((directory (and assets (string-trim-right assets #\/))))
     (ensure-resource worker-provider resource-name
                      `((name . ,(or name
                                     (match (current-stage)
@@ -247,6 +316,21 @@ address.  It is deployed again whenever a file changes."
                                       (stage (string-append
                                               resource-name "-"
                                               (stage-name stage))))))
+                       (script . ,script)
+                       (script-hash . ,(and script (file-digest script)))
                        (directory . ,directory)
-                       (assets . ,(manifest-digest (assets-manifest directory)))
+                       (assets . ,(and directory
+                                       (manifest-digest
+                                        (assets-manifest directory))))
+                       (vars . ,(sort vars (lambda (a b)
+                                             (string<? (car a) (car b)))))
+                       ;; Only a digest of each value: secrets are not saved.
+                       (secrets . ,(map (lambda (secret)
+                                          (cons secret
+                                                (bytevector->base16-string
+                                                 (sha256 (string->utf8
+                                                          (secret-value secret))))))
+                                        (sort secrets string<?)))
+                       (bindings . ,bindings)
+                       (crons . ,crons)
                        (domain . ,domain)))))

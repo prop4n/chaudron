@@ -3,6 +3,9 @@
 
 (use-modules (chaudron)
              (chaudron cloudflare)
+             (chaudron resource)
+             (ice-9 textual-ports)
+             (srfi srfi-1)
              (gcrypt base16)
              (gcrypt base64)
              (gcrypt hash)
@@ -116,6 +119,87 @@ the SHA-256 of TEXT in base64 followed by EXTENSION."
     (with-api ('(200 . #f) ok)
       (quietly (lambda () (with-stage "prod" #t)))
       (routes))))
+
+;; A Worker running code, given variables, a secret, a KV namespace and
+;; times to run.
+
+(define script (string-append site "/worker.js"))
+
+(call-with-output-file script
+  (lambda (port) (display "export default { fetch() {} };" port)))
+
+(setenv "CHAUDRON_TEST_TOKEN" "very-secret")
+
+(define* (api #:key (greeting "hello") (crons '("*/30 * * * *")))
+  (quietly
+   (lambda ()
+     (with-stage "prod"
+       (let ((cache (make-resource 'cloudflare-kv-namespace "cache" '()
+                                   '((id . "kv1")))))
+         (cloudflare-worker "api"
+                            #:script script
+                            #:vars `(("GREETING" . ,greeting))
+                            #:secrets '("CHAUDRON_TEST_TOKEN")
+                            #:bindings (list (kv-binding "CACHE" cache))
+                            #:crons crons))))))
+
+(define subdomain (cloudflare-ok '(("subdomain" . "me"))))
+
+(parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
+
+  (test-equal "publishes the code, then its schedule, on workers.dev"
+    '("https://api-prod.me.workers.dev/"
+      ((GET "/accounts")
+       (PUT "/accounts/a1/workers/scripts/api-prod")
+       (PUT "/accounts/a1/workers/scripts/api-prod/schedules")
+       (POST "/accounts/a1/workers/scripts/api-prod/subdomain")
+       (GET "/accounts/a1/workers/subdomain")))
+    (with-api (accounts ok ok ok subdomain)
+      (list (output (api) 'url) (routes))))
+
+  (test-assert "sends the module, the variables, the secret and the binding"
+    (let ((upload (body 1)))
+      (every (lambda (text) (string-contains upload text))
+             '("\"main_module\":\"worker.js\""
+               "export default { fetch() {} };"
+               "\"type\":\"plain_text\",\"name\":\"GREETING\",\"text\":\"hello\""
+               "\"type\":\"secret_text\",\"name\":\"CHAUDRON_TEST_TOKEN\",\"text\":\"very-secret\""
+               "\"type\":\"kv_namespace\",\"name\":\"CACHE\",\"namespace_id\":\"kv1\""))))
+
+  (test-equal "runs it at the times given"
+    #((("cron" . "*/30 * * * *")))
+    (body 2))
+
+  (test-assert "does not save the secret"
+    (not (string-contains
+          (call-with-input-file
+              (string-append (state-directory)
+                             "/prod/cloudflare-worker/api.scm")
+            get-string-all)
+          "very-secret")))
+
+  (test-equal "publishes again when a variable changes"
+    '((GET "/accounts/a1/workers/scripts/api-prod/settings")
+      (PUT "/accounts/a1/workers/scripts/api-prod"))
+    (with-api (ok ok)
+      (api #:greeting "bonjour")
+      (routes)))
+
+  (test-equal "only changes the schedule when the times change"
+    '((GET "/accounts/a1/workers/scripts/api-prod/settings")
+      (PUT "/accounts/a1/workers/scripts/api-prod/schedules"))
+    (with-api (ok ok)
+      (api #:greeting "bonjour" #:crons '("0 3 * * *"))
+      (routes)))
+
+  (test-equal "publishes again when the secret changes"
+    '((GET "/accounts/a1/workers/scripts/api-prod/settings")
+      (PUT "/accounts/a1/workers/scripts/api-prod"))
+    (begin
+      (setenv "CHAUDRON_TEST_TOKEN" "another-secret")
+      (with-api (ok ok)
+        (api #:greeting "bonjour" #:crons '("0 3 * * *"))
+        (routes)))))
 
 (define failures (test-runner-fail-count (test-runner-current)))
 (test-end "cloudflare-worker")
