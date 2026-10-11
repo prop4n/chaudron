@@ -1,7 +1,7 @@
-// The documentation's behaviors: the menu on small screens, the table of
-// contents following the reading, and the search (Ctrl K or /).
+// The menu on small screens, the table of contents following the reading,
+// and the search (Ctrl K or /).
 (function () {
-  // --- Menu ---------------------------------------------------------
+  // Menu
   var menuButton = document.querySelector(".menu-button");
   if (menuButton) {
     menuButton.addEventListener("click", function () {
@@ -10,7 +10,7 @@
     });
   }
 
-  // --- On this page: mark the section being read --------------------
+  // On this page: mark the section being read
   var tocLinks = document.querySelectorAll(".docs-toc a, .toc-mobile a");
   var headings = document.querySelectorAll(".prose h2[id], .prose h3[id]");
 
@@ -37,7 +37,7 @@
     update();
   }
 
-  // --- Search -------------------------------------------------------
+  // Search
   var dialog = document.getElementById("search");
   var input = document.getElementById("search-input");
   var list = document.getElementById("search-results");
@@ -47,7 +47,7 @@
   var loading = null;
 
   function normalize(s) {
-    return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
   function load() {

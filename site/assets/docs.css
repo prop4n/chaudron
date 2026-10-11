@@ -1,5 +1,4 @@
-/* The documentation: a sidebar, the page, and its table of contents.
-   Everything else comes from style.css. */
+/* The documentation pages, on top of style.css. */
 
 .masthead {
   position: sticky;
@@ -18,7 +17,7 @@
   font-weight: 700;
 }
 
-/* Small buttons in the bar: a finer frame than the panels'. */
+/* Small buttons in the bar get a finer frame. */
 .search-button, .menu-button {
   --px: 2px;
   display: inline-flex;
@@ -97,7 +96,7 @@
 
 .docs-sidebar a:hover { color: var(--link); }
 
-/* The current page is marked with a pixel of brew. */
+/* The current page is marked with a green pixel. */
 .docs-sidebar a[aria-current="page"] { color: var(--link); font-weight: 700; }
 
 .docs-sidebar a[aria-current="page"]::before {

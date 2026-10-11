@@ -1,5 +1,5 @@
-/* chaudron. Colors come from the logo: the cast iron of the pot, and the
-   brew, kept for what comes out of it. */
+/* The colors come from the logo: the dark iron of the cauldron for text and
+   panels, its green for what chaudron prints. */
 
 @font-face {
   font-family: "Atkinson";
@@ -115,10 +115,8 @@ h3 { font-size: 1.15rem; font-weight: 700; }
   padding: 0 1.25rem;
 }
 
-/* Pixel frames: panels and buttons are drawn like the logo, with an
-   outline one pixel thick, rounded corners and a highlight along the top.
-   The frames are 11x11 images made by haunt.scm; their 5-pixel corners are
-   kept whole, and the hard shadow follows their shape. */
+/* Pixel frames around panels and buttons: 11x11 images made by
+   chaudron-site/frames.scm, whose 5-pixel corners are kept whole. */
 .pot, .button {
   border: calc(5 * var(--px)) solid transparent;
   border-image: url("/assets/frames/iron.svg") 5 fill / calc(5 * var(--px));
@@ -149,8 +147,7 @@ h3 { font-size: 1.15rem; font-weight: 700; }
   text-decoration: none;
 }
 
-/* Scaled up by a whole factor, the logo stays sharp; scaled down, it is
-   better smoothed. */
+/* Pixelated only when scaled up: scaled down, it is better smoothed. */
 .hero-logo { image-rendering: pixelated; }
 
 .masthead-end { display: flex; align-items: center; gap: 1.5rem; }
@@ -175,8 +172,7 @@ h3 { font-size: 1.15rem; font-weight: 700; }
 
 .hero-grid { position: relative; }
 
-/* Behind the hero: a dither of pixels that fades out downwards, and a few
-   bubbles rising one pixel at a time, like the logo's steam. */
+/* Behind the hero: a dither fading out downwards, and rising bubbles. */
 
 .brew {
   position: absolute;
@@ -275,7 +271,7 @@ h1 {
   .button-quiet { border-image-source: url("/assets/frames/dusk-dark.svg"); color: var(--ink); }
 }
 
-/* Pots: dark panels holding code and what chaudron prints. */
+/* Panels holding code and what chaudron prints. */
 
 .pot {
   margin: 0;
@@ -324,8 +320,7 @@ h1 {
 .syntax-special { color: #fff; font-weight: 700; }
 .syntax-open, .syntax-close { color: var(--iron-muted); }
 
-/* What chaudron prints is the brew. Long lines wrap, with the next ones
-   indented under the message. */
+/* What chaudron prints. Long lines wrap, indented under the message. */
 .report { color: var(--brew); }
 
 .report .line {
