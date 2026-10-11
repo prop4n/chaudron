@@ -52,9 +52,9 @@
 
 .docs {
   display: grid;
-  grid-template-columns: 16rem minmax(0, 46rem) 14rem;
+  grid-template-columns: 16rem minmax(0, 48rem) 11rem;
   justify-content: center;
-  gap: 3rem;
+  gap: 2.5rem;
   max-width: 90rem;
   margin: 0 auto;
   padding: 0 1.25rem;
@@ -109,14 +109,16 @@
   background: var(--brew-deep);
 }
 
-.docs-toc ul ul { padding-left: 0.9rem; }
+/* Only the sections: their subsections would make the column long. */
+.docs-toc ul ul { display: none; }
 
 .docs-toc a {
   display: block;
   padding: 0.2rem 0;
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .docs-toc a:hover, .docs-toc a[aria-current="true"] { color: var(--ink); }
@@ -477,7 +479,7 @@
 /* Narrower screens: no table of contents column, then no sidebar. */
 
 @media (max-width: 80rem) {
-  .docs { grid-template-columns: 15rem minmax(0, 46rem); }
+  .docs { grid-template-columns: 15rem minmax(0, 48rem); }
   .docs-toc { display: none; }
   .toc-mobile { display: block; margin-top: 1.5rem; }
   .toc-mobile summary { cursor: pointer; color: var(--muted); }
