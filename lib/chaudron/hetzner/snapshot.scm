@@ -8,12 +8,16 @@
   #:export (hetzner-snapshot))
 
 (define (create-snapshot _ props)
-  (let* ((response (resource-action "servers" (assq-ref props 'server)
-                                    "create_image"
-                                    `(("type" . "snapshot")
-                                      ("description" . ,(assq-ref props 'description))
-                                      ("labels" . ,(labels->json props)))))
+  ;; Taking the snapshot can be long: save it before waiting for it.
+  (let* ((response (hetzner-request
+                    'POST (resource-path "servers" (assq-ref props 'server)
+                                         "/actions/create_image")
+                    `(("type" . "snapshot")
+                      ("description" . ,(assq-ref props 'description))
+                      ("labels" . ,(labels->json props)))))
          (id (json-ref response "image" "id")))
+    (created! `((id . ,id)) props '((protected? . #f)))
+    (wait-for-actions response)
     (when (assq-ref props 'protected?)
       (protect! "images" id props))
     `((id . ,id))))

@@ -16,6 +16,7 @@
             call-with-stage
             with-stage
             ensure-resource
+            created!
             destroy-stage
             exit-on-failure?)
   #:re-export (report
@@ -66,6 +67,38 @@
 
 ;;; Declaring resources.
 
+(define (save-resource! stage kind name props outputs depends-on)
+  "Save the state of resource NAME of KIND, unless it is unchanged."
+  (with-mutex (stage-lock stage)
+    (let* ((key (cons kind name))
+           (old (hash-ref (stage-entries stage) key))
+           (entry `((kind . ,kind)
+                    (name . ,name)
+                    (seq . ,(if old (assq-ref old 'seq) (next-seq stage)))
+                    (props . ,props)
+                    (outputs . ,outputs)
+                    (depends-on . ,depends-on))))
+      (unless (equal? entry old)
+        (save-entry! (stage-name stage) entry)
+        (hash-set! (stage-entries stage) key entry)))))
+
+;; While a provider creates a resource: called with its props and outputs to
+;; save it right away.
+(define %save-created (make-parameter #f))
+
+(define* (created! outputs props #:optional (pending '()))
+  "Tell chaudron that the resource being created exists, with OUTPUTS, but
+is not complete: PENDING is an alist of the PROPS that do not hold yet, with
+the values they have instead.  It is saved at once, so that if creating it
+fails afterwards, the next run finds it and updates it from there."
+  (match (%save-created)
+    (#f #f)
+    (save!
+     (save! (map (match-lambda
+                   ((key . value) (or (assq key pending) (cons key value))))
+                 props)
+            outputs))))
+
 (define (ensure-resource provider name props)
   "Converge resource NAME, managed by PROVIDER, to PROPS within the current
 stage.  Return the resulting <resource>.  This may be called from several
@@ -84,18 +117,14 @@ threads at once."
                 (hash-ref (stage-entries stage) key)))
          (current (and old (observe provider id (assq-ref old 'props)
                                     (assq-ref old 'outputs))))
-         (outputs (converge (stage-dry-run? stage) provider id name current props)))
-    (unless (stage-dry-run? stage)
-      (with-mutex (stage-lock stage)
-        (let ((entry `((kind . ,kind)
-                       (name . ,name)
-                       (seq . ,(if old (assq-ref old 'seq) (next-seq stage)))
-                       (props . ,props)
-                       (outputs . ,outputs)
-                       (depends-on . ,depends-on))))
-          (unless (equal? entry old)
-            (save-entry! (stage-name stage) entry)
-            (hash-set! (stage-entries stage) key entry)))))
+         (save! (lambda (props outputs)
+                  (unless (stage-dry-run? stage)
+                    (save-resource! stage kind name props outputs
+                                    depends-on))))
+         (outputs (parameterize ((%save-created save!))
+                    (converge (stage-dry-run? stage) provider id name
+                              current props))))
+    (save! props outputs)
     (make-resource kind name props outputs)))
 
 ;;; Deleting resources.

@@ -21,6 +21,7 @@
                                       ("format" . ,(assq-ref props 'format))
                                       ("labels" . ,(labels->json props)))))
          (outputs (volume-outputs (json-ref response "volume"))))
+    (created! outputs props '((protected? . #f)))
     (wait-for-actions response)
     (when (assq-ref props 'protected?)
       (protect! "volumes" (assq-ref outputs 'id) props))

@@ -270,6 +270,13 @@ replaces the resource. `#:read` is optional: it returns the props it can
 observe on the real resource along with fresh outputs, or `#f` if the
 resource no longer exists.
 
+When creating takes several steps, call `(created! outputs props pending)`
+as soon as the resource exists, `pending` being an alist of the props that
+do not hold yet and the values they have instead, e.g.
+`'((protected? . #f))`. The resource is saved at once: if a later step
+fails, the next run finds it and finishes the job with `#:update`, instead
+of losing track of it.
+
 ## Development
 
 The library lives in `lib/`. Everything below runs from there:

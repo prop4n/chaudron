@@ -50,6 +50,7 @@ on the load balancer to port TO on its targets."
                             '())
                       ("labels" . ,(labels->json props)))))
          (outputs (load-balancer-outputs (json-ref response "load_balancer"))))
+    (created! outputs props '((protected? . #f)))
     (wait-for-actions response)
     (when (assq-ref props 'protected?)
       (protect! "load_balancers" (assq-ref outputs 'id) props))

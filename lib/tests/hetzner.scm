@@ -140,6 +140,28 @@
              (hetzner-ssh-key "file" #:public-key-file file))))
         (assoc-ref (body 0) "public_key"))))
 
+  (test-equal "keeps a server whose backups failed, and enables them next time"
+    '((POST "/servers") (POST "/servers/43/actions/enable_backup")
+      (GET "/servers/43") (POST "/servers/43/actions/enable_backup"))
+    (let ((server '(("id" . 43)
+                    ("name" . "half-half")
+                    ("server_type" . (("name" . "cx22")))
+                    ("public_net" . (("ipv4" . (("ip" . "1.2.3.5")))))))
+          (run (lambda ()
+                 (with-stage "half"
+                   (hetzner-server "half" #:type "cx22" #:location "fsn1"
+                                   #:backups? #t)))))
+      (with-api (`(201 . (("server" . ,server)
+                          ("action" . ,(action 10 "success"))))
+                 '(409 . (("error" . (("code" . "conflict")
+                                      ("message" . "busy")))))
+                 `(200 . (("server" . ,server)))
+                 (done 11))
+        (quietly (lambda ()
+                   (false-if-exception (run))
+                   (run)))
+        (routes))))
+
   (test-equal "retries on server errors"
     '(("ok" . #t))
     (with-api ('(503 . #f) '(200 . (("ok" . #t))))

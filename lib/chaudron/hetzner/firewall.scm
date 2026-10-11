@@ -30,12 +30,14 @@ to PORT, a number or a range such as \"8000-8100\", from the FROM networks."
   (list->vector (map rule->json (assq-ref props 'rules))))
 
 (define (create-firewall _ props)
-  (let ((response (hetzner-request 'POST "/firewalls"
-                                   `(("name" . ,(assq-ref props 'name))
-                                     ("rules" . ,(rules->json props))
-                                     ("labels" . ,(labels->json props))))))
+  (let* ((response (hetzner-request 'POST "/firewalls"
+                                    `(("name" . ,(assq-ref props 'name))
+                                      ("rules" . ,(rules->json props))
+                                      ("labels" . ,(labels->json props)))))
+         (outputs `((id . ,(json-ref response "firewall" "id")))))
+    (created! outputs props)
     (wait-for-actions response)
-    `((id . ,(json-ref response "firewall" "id")))))
+    outputs))
 
 ;; Rules are not checked for drift: they come back from the API in a
 ;; normalized form that would not compare equal to ours.

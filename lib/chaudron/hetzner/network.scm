@@ -22,6 +22,7 @@
                                 (assq-ref props 'subnets))))
                       ("labels" . ,(labels->json props)))))
          (id (json-ref response "network" "id")))
+    (created! `((id . ,id)) props '((protected? . #f)))
     (when (assq-ref props 'protected?)
       (protect! "networks" id props))
     `((id . ,id))))

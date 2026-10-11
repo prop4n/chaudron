@@ -22,14 +22,25 @@
 ;; Ids of resources that refuse to be deleted, like protected ones.
 (define protected '())
 
+;; Whether creating a resource fails once it exists, before it is complete.
+(define fail-after-creating? #f)
+
 (define fake
   (make-provider 'fake-thing
                  #:create (lambda (name props)
-                            (with-mutex lock
-                              (set! next-id (1+ next-id))
-                              (record! 'create name)
-                              (hash-set! world next-id (assq-ref props 'size))
-                              `((id . ,next-id))))
+                            (let ((id (with-mutex lock
+                                        (set! next-id (1+ next-id))
+                                        (record! 'create name)
+                                        (hash-set! world next-id 0)
+                                        next-id)))
+                              ;; Like a server whose backups are enabled
+                              ;; once it exists.
+                              (created! `((id . ,id)) props '((size . 0)))
+                              (when fail-after-creating?
+                                (error "could not set the size" id))
+                              (with-mutex lock
+                                (hash-set! world id (assq-ref props 'size)))
+                              `((id . ,id))))
                  #:read (lambda (outputs)
                           (with-mutex lock
                             (let ((size (hash-ref world (assq-ref outputs 'id))))
@@ -205,6 +216,24 @@ protected ~a" a))
                    'exits-in-scripts)
               (and kept? 'kept-a)
               (and (equal? applied '((create "b"))) 'recreated-b-only)))))
+
+  ;; Creations that fail half-way.
+
+  (test-equal "keeps a resource whose creation fails once it exists"
+    '((create "h"))
+    (run-calls
+     (set! fail-after-creating? #t)
+     (false-if-exception (with-stage "half" (fake-thing "h" #:size 5)))
+     (set! fail-after-creating? #f)))
+
+  (test-equal "finishes creating it on the next run"
+    '((update) 5)
+    (let ((calls (run-calls (with-stage "half" (fake-thing "h" #:size 5)))))
+      (list (map car calls) (hash-ref world next-id))))
+
+  (test-equal "is then complete"
+    '()
+    (run-calls (with-stage "half" (fake-thing "h" #:size 5))))
 
   ;; Dry runs.
 

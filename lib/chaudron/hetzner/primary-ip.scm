@@ -21,6 +21,7 @@
                                       ("auto_delete" . #f)
                                       ("labels" . ,(labels->json props)))))
          (outputs (primary-ip-outputs (json-ref response "primary_ip"))))
+    (created! outputs props '((protected? . #f)))
     (wait-for-actions response)
     (when (assq-ref props 'protected?)
       (protect! "primary_ips" (assq-ref outputs 'id) props))

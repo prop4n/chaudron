@@ -12,6 +12,7 @@
                current-stage
                stage-name
                ensure-resource
+               created!
                report
                chaudron-error?
                exit-on-failure?

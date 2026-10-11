@@ -60,6 +60,7 @@
                       ("labels" . ,(labels->json props)))))
          (outputs (server-outputs (json-ref response "server")))
          (id (assq-ref outputs 'id)))
+    (created! outputs props '((backups? . #f) (protected? . #f)))
     (wait-for-actions response)
     (when (assq-ref props 'backups?)
       (server-action id "enable_backup"))
