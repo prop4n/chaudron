@@ -12,18 +12,8 @@ then deletes it. You need a Hetzner account and an SSH key.
 
 ## Set up the project
 
-Make a directory for it. With Guix, put in it the `channels.scm` shown in
-[Installation](/docs/installation/#with-guix), pin the versions, and open
-the shell where chaudron is:
-
-```sh
-$ mkdir box && cd box
-$ guix time-machine -C channels.scm -- describe -f channels > channels.lock.scm
-$ guix time-machine -C channels.lock.scm -- shell guile chaudron
-```
-
-On Debian or Ubuntu, set `GUILE_LOAD_PATH` as shown there instead. The
-commands below run in this directory.
+Create a project as shown in [Installation](/docs/installation/#create-a-project),
+steps 1 to 3, and open its shell. The commands below run in it.
 
 ## Get a token
 
