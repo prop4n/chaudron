@@ -97,15 +97,10 @@ From `lib/`:
 
 ```sh
 guix shell -m manifest.scm
-guile -L . tests/stage.scm
-guile -L . tests/hetzner.scm
-guile -L . tests/hetzner-resources.scm
-guile -L . tests/hetzner-guix.scm
-guile -L . tests/cloudflare.scm
-guile -L . tests/cloudflare-worker.scm
-guile -L . tests/env.scm
-guile -L . tests/livebox.scm
+guile -L . tests/run.scm
 ```
+
+Each file can also be run alone, such as `guile -L . tests/stage.scm`.
 
 The tests run against fake APIs and fake commands: they need no account and
 cost nothing.
