@@ -52,9 +52,9 @@
 
 .docs {
   display: grid;
-  grid-template-columns: 16rem minmax(0, 48rem) 11rem;
+  grid-template-columns: 16rem minmax(0, 50rem) 9rem;
   justify-content: center;
-  gap: 2.5rem;
+  gap: 2rem;
   max-width: 90rem;
   margin: 0 auto;
   padding: 0 1.25rem;
@@ -117,9 +117,11 @@
   padding: 0.2rem 0;
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.8rem;
-  line-height: 1.4;
+  font-size: 0.75rem;
+  line-height: 1.35;
 }
+
+.docs-toc h2 { font-size: 0.68rem; }
 
 .docs-toc a:hover, .docs-toc a[aria-current="true"] { color: var(--ink); }
 
@@ -479,7 +481,7 @@
 /* Narrower screens: no table of contents column, then no sidebar. */
 
 @media (max-width: 80rem) {
-  .docs { grid-template-columns: 15rem minmax(0, 48rem); }
+  .docs { grid-template-columns: 15rem minmax(0, 50rem); }
   .docs-toc { display: none; }
   .toc-mobile { display: block; margin-top: 1.5rem; }
   .toc-mobile summary { cursor: pointer; color: var(--muted); }
