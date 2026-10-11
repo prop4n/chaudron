@@ -43,7 +43,7 @@ conditions on the environment.
 |---|---|
 | [Hetzner Cloud](/docs/hetzner/) | servers, SSH keys, firewalls, primary IPs, volumes, networks, load balancers, snapshots |
 | [Guix System](/docs/guix-system/) | Guix System installed and deployed on Hetzner servers |
-| [Cloudflare](/docs/cloudflare/) | DNS records, Workers serving static sites |
+| [Cloudflare](/docs/cloudflare/) | DNS records, Workers, KV namespaces, D1 databases |
 | [Livebox](/docs/livebox/) | port forwards and DHCP leases of an Orange Livebox, experimental |
 
 You can [write your own provider](/docs/writing-a-provider/): it is a

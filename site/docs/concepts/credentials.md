@@ -57,5 +57,7 @@ Give tokens no more than they need:
 
 - a Hetzner token belongs to one project: use a project per set of
   resources you want to keep apart;
-- a Cloudflare token only needs **DNS: Edit**, on the zones chaudron
-  manages, and **Workers Scripts: Edit** for Workers.
+- a Cloudflare token only needs the permissions of the resources it
+  manages: **DNS: Edit** on the zones for DNS records, and on the account
+  **Workers Scripts: Edit** for Workers, **Workers KV Storage: Edit** for
+  KV namespaces, **D1: Edit** for D1 databases.

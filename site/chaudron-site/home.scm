@@ -185,7 +185,9 @@
                           (dd ,(resources "hetzner-guix-system")))
                      (div (dt "Cloudflare")
                           (dd ,(resources "cloudflare-dns-record"
-                                          "cloudflare-worker")))
+                                          "cloudflare-worker"
+                                          "cloudflare-kv-namespace"
+                                          "cloudflare-d1-database")))
                      (div (dt "Livebox " (span (@ (class "tag")) "experimental"))
                           (dd ,(resources "livebox-port-forward"
                                           "livebox-dhcp-lease"))))

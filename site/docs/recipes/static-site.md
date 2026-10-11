@@ -1,5 +1,5 @@
 title: A static site on Guix System
-order: 5
+order: 6
 description: A Hetzner server running Guix System, nginx serving your files, and a DNS record.
 ---
 
