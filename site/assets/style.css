@@ -1,0 +1,499 @@
+/* chaudron. Colors come from the logo: the cast iron of the pot, and the
+   brew, kept for what comes out of it. */
+
+@font-face {
+  font-family: "Atkinson";
+  src: url("/fonts/atkinson-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson";
+  src: url("/fonts/atkinson-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson";
+  src: url("/fonts/atkinson-extrabold.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Commit Mono";
+  src: url("/fonts/commit-mono-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Commit Mono";
+  src: url("/fonts/commit-mono-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --paper: #f2f3f7;
+  --ink: #181825;
+  --muted: #55556c;
+  --rule: #d8d9e2;
+  --link: #12701a;
+  --iron: #1d1d2c;
+  --iron-rim: #34344a;
+  --iron-ink: #d9d9e6;
+  --iron-muted: #8b8ba6;
+  --brew: #84ef2e;
+  --brew-deep: #4db62e;
+  --outline: #04050a;
+  --drop: #cdcedb;
+  /* One pixel of the logo, as the hero shows it (70 pixels at 210px). */
+  --px: 3px;
+  --dither: rgba(24, 24, 37, 0.07);
+  --bubble-opacity: 0.45;
+
+  --sans: "Atkinson", system-ui, sans-serif;
+  --mono: "Commit Mono", ui-monospace, monospace;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #12121b;
+    --ink: #e6e6ef;
+    --muted: #a3a3bb;
+    --rule: #2b2b3e;
+    --link: #84ef2e;
+    --iron: #1d1d2e;
+    --iron-rim: #34344a;
+    --drop: #08080e;
+    --dither: rgba(230, 230, 239, 0.05);
+    --bubble-opacity: 0.5;
+    --outline: #40405a;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+img { display: block; }
+
+a { color: var(--link); text-underline-offset: 0.18em; }
+
+a:focus-visible, .button:focus-visible {
+  outline: 3px solid var(--brew-deep);
+  outline-offset: 3px;
+}
+
+code { font-family: var(--mono); font-size: 0.88em; }
+
+h1, h2, h3 { line-height: 1.1; margin: 0; }
+
+h2 {
+  font-size: clamp(1.75rem, 3.2vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+h2 code { font-size: 0.85em; font-weight: 700; white-space: nowrap; }
+
+h3 { font-size: 1.15rem; font-weight: 700; }
+
+.wrap {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* Pixel frames: panels and buttons are drawn like the logo, with an
+   outline one pixel thick, rounded corners and a highlight along the top.
+   The frames are 11x11 images made by haunt.scm; their 5-pixel corners are
+   kept whole, and the hard shadow follows their shape. */
+.pot, .button {
+  border: calc(5 * var(--px)) solid transparent;
+  border-image: url("/assets/frames/iron.svg") 5 fill / calc(5 * var(--px));
+  background: none;
+  filter: drop-shadow(calc(2 * var(--px)) calc(2 * var(--px)) 0 var(--drop));
+}
+
+/* Masthead */
+
+.masthead { border-bottom: 1px solid var(--rule); }
+
+.masthead-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+/* Scaled up by a whole factor, the logo stays sharp; scaled down, it is
+   better smoothed. */
+.hero-logo { image-rendering: pixelated; }
+
+.masthead-end { display: flex; align-items: center; gap: 1.5rem; }
+
+.masthead nav { display: flex; gap: 1.5rem; }
+
+.masthead nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.masthead nav a:hover { color: var(--ink); }
+
+/* Hero */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 4.5rem 0 5rem;
+}
+
+.hero-grid { position: relative; }
+
+/* Behind the hero: a dither of pixels that fades out downwards, and a few
+   bubbles rising one pixel at a time, like the logo's steam. */
+
+.brew {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.brew::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--dither);
+  -webkit-mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Crect width='3' height='3'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, #000, transparent 85%);
+  -webkit-mask-composite: source-in;
+  mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Crect width='3' height='3'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, #000, transparent 85%);
+  mask-composite: intersect;
+}
+
+.bubble {
+  position: absolute;
+  bottom: 0;
+  width: var(--px);
+  height: var(--px);
+  background: var(--brew-deep);
+  opacity: 0;
+  animation-name: bubble;
+  animation-iteration-count: infinite;
+  /* One pixel at a time: 600px in steps of 3px. */
+  animation-timing-function: steps(200);
+}
+
+.bubble-big { width: calc(2 * var(--px)); height: calc(2 * var(--px)); }
+
+@keyframes bubble {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: var(--bubble-opacity); }
+  70% { opacity: var(--bubble-opacity); }
+  100% { transform: translateY(-600px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble { display: none; }
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.hero-logo { margin: 0 0 1.5rem calc(-2 * var(--px)); }
+
+h1 {
+  font-size: clamp(2.5rem, 5.4vw, 4.25rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+
+.lede {
+  margin: 1.5rem 0 2rem;
+  max-width: 34rem;
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+
+.actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+.button {
+  display: inline-block;
+  padding: 0.25rem 0.9rem;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.button:hover { filter: drop-shadow(calc(2 * var(--px)) calc(2 * var(--px)) 0 var(--drop)) brightness(1.25); }
+
+.button:active { transform: translate(var(--px), var(--px)); }
+
+.button-quiet {
+  border-image-source: url("/assets/frames/pale.svg");
+  color: var(--ink);
+}
+
+.button-quiet:hover { filter: drop-shadow(calc(2 * var(--px)) calc(2 * var(--px)) 0 var(--drop)) brightness(0.95); }
+
+@media (prefers-color-scheme: dark) {
+  .pot { border-image-source: url("/assets/frames/iron-dark.svg"); }
+  .button { border-image-source: url("/assets/frames/brew-dark.svg"); color: var(--iron); }
+  .button-quiet { border-image-source: url("/assets/frames/dusk-dark.svg"); color: var(--ink); }
+}
+
+/* Pots: dark panels holding code and what chaudron prints. */
+
+.pot {
+  margin: 0;
+  color: var(--iron-ink);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* Inside the frame, separators reach its outline. */
+.pot-title, .pot-run, .pot pre {
+  margin-left: calc(-4 * var(--px));
+  margin-right: calc(-4 * var(--px));
+}
+
+.pot-title {
+  margin-top: calc(-2 * var(--px));
+  padding: 0 1.25rem 0.6rem;
+  border-bottom: var(--px) solid var(--outline);
+  color: var(--iron-muted);
+  font-size: 0.78rem;
+}
+
+.pot pre {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+}
+
+.pot pre code { font-size: inherit; }
+
+.pot > :last-child { margin-bottom: calc(-2 * var(--px)); }
+
+.pot-run {
+  padding: 0.6rem 1.25rem;
+  border-top: var(--px) solid var(--outline);
+  color: var(--iron-ink);
+}
+
+.prompt { color: var(--iron-muted); user-select: none; }
+
+.syntax-comment { color: var(--iron-muted); }
+.syntax-string { color: #f3c98b; }
+.syntax-keyword { color: #a9b8ff; }
+.syntax-special { color: #fff; font-weight: 700; }
+.syntax-open, .syntax-close { color: var(--iron-muted); }
+
+/* What chaudron prints is the brew. Long lines wrap, with the next ones
+   indented under the message. */
+.report { color: var(--brew); }
+
+.report .line {
+  display: block;
+  padding-left: 2ch;
+  text-indent: -2ch;
+  white-space: pre-wrap;
+}
+
+.report .prefix { color: var(--brew-deep); }
+
+.hero-pot .report { padding-top: 0.25rem; }
+
+.hero-pot .report .line {
+  animation: rise 0.5s ease-out both;
+}
+
+.hero-pot .report .line:nth-child(1) { animation-delay: 0.5s; }
+.hero-pot .report .line:nth-child(2) { animation-delay: 1.1s; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-pot .report .line { animation: none; }
+}
+
+/* Sections */
+
+.band {
+  padding: 5rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.intro {
+  max-width: 40rem;
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.steps {
+  list-style: none;
+  counter-reset: step;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.5rem;
+  margin: 3rem 0 0;
+  padding: 0;
+}
+
+.steps li { counter-increment: step; }
+
+.steps li::before {
+  content: counter(step);
+  display: block;
+  margin-bottom: 1rem;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 2.5rem;
+  line-height: 1;
+  color: var(--brew-deep);
+}
+
+.steps p, .specimen p { margin: 0.6rem 0 0; color: var(--muted); }
+
+.specimens {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  grid-template-rows: auto auto;
+  gap: 2.5rem 3rem;
+  margin-top: 3rem;
+}
+
+.specimen-state { grid-row: span 2; }
+
+.specimen .pot { margin-top: 1.5rem; }
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 3.5rem;
+  align-items: start;
+}
+
+.split > div > p { margin: 1rem 0 0; color: var(--muted); }
+
+.sequence {
+  margin: 1.5rem 0 0;
+  padding-left: 1.4rem;
+}
+
+.sequence li { margin: 0.4rem 0; padding-left: 0.3rem; }
+
+.sequence li::marker { font-family: var(--mono); color: var(--brew-deep); }
+
+.providers { margin: 2.5rem 0 0; }
+
+.providers > div {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.providers > div:last-child { border-bottom: 1px solid var(--rule); }
+
+.providers dt { font-weight: 700; }
+
+.providers dd { margin: 0; }
+
+.tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  vertical-align: 0.15em;
+}
+
+.resources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.split-provider { margin-top: 4rem; }
+
+.note { font-size: 0.95rem; }
+
+/* Footer */
+
+.footer {
+  padding: 2rem 0 3rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.footer p { margin: 0; flex: 1; }
+
+/* Small screens */
+
+@media (max-width: 56rem) {
+  .hero { padding: 3rem 0 4rem; }
+  .hero-grid, .split, .specimens { grid-template-columns: minmax(0, 1fr); }
+  .specimen-state { grid-row: auto; }
+  .steps { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .band { padding: 3.5rem 0; }
+}
+
+@media (max-width: 40rem) {
+  .masthead nav a:not(:last-child) { display: none; }
+  .providers > div { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+  .pot { font-size: 0.78rem; }
+  .pot pre, .pot-title, .pot-run { padding-left: 1rem; padding-right: 1rem; }
+}

@@ -315,7 +315,8 @@ of losing track of it.
 
 ## Development
 
-The library lives in `lib/`. Everything below runs from there:
+The library lives in `lib/`, the website in `site/`. Everything below runs
+from `lib/`:
 
 ```sh
 cd lib
