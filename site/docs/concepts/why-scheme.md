@@ -22,12 +22,9 @@ and what runs on it, together, versioned together.
 
 A procedure is a pattern. Here, `website` makes a server, points a DNS
 record at it, and installs a Guix System serving the site. Two websites are
-two calls, made at the same time with `concurrently`.
+two calls, made at the same time with `concurrently`:
 
-```project
-@ deploy.scm | commit
-The program.
-~~~ scheme
+```scheme deploy.scm
 (use-modules (chaudron)
              (chaudron hetzner)
              (chaudron cloudflare))
@@ -51,10 +48,11 @@ The program.
     (hetzner-ssh-key "me" #:public-key-file "~/.ssh/id_ed25519.pub"))
   (concurrently (website "blog" key)
                 (website "shop" key)))
-~~~
-@ system.scm | commit
-The system of a website, for a domain, written to a file.
-~~~ scheme
+```
+
+`system.scm` holds the system of a website, for a domain:
+
+```scheme system.scm
 (use-modules (ice-9 pretty-print))
 
 (define (system-of domain)
@@ -63,6 +61,7 @@ The system of a website, for a domain, written to a file.
     (use-service-modules web)
 
     (define %base (make-hetzner-os "cx23"))
+    (define %page (plain-file "index.html" ,domain))
 
     (operating-system
       (inherit %base)
@@ -75,8 +74,7 @@ The system of a website, for a domain, written to a file.
                                (server-name (list ,domain))
                                (listen '("80"))
                                (root (file-union "site"
-                                       (list (list "index.html"
-                                                   (plain-file "index.html" ,domain))))))))))
+                                       (list (list "index.html" %page)))))))))
              (operating-system-user-services %base))))))
 
 (define (write-system! name domain)
@@ -87,7 +85,6 @@ The system of a website, for a domain, written to a file.
         (for-each (lambda (form) (pretty-print form port) (newline port))
                   (system-of domain))))
     file))
-~~~
 ```
 
 ## Code is data
