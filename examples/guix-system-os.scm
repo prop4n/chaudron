@@ -1,5 +1,4 @@
-;; The system of guix-system.scm: nginx serving public/, over HTTPS with a
-;; certificate from Let's Encrypt.
+;; The system of guix-system.scm.
 
 (use-modules (gnu)
              (gnu machine hetzner)

@@ -1,10 +1,4 @@
-;;; The chaudron website, built with Haunt: the home page, and the
-;;; documentation, written in Markdown under docs/.  The pieces are in
-;;; chaudron-site/.
-;;;
-;;;   guix time-machine -C channels.lock.scm -- shell -m manifest.scm -- haunt build
-;;;
-;;; The result is in public/.
+;;; The chaudron website: see README.md.
 
 (use-modules (haunt builder assets)
              (haunt reader commonmark)

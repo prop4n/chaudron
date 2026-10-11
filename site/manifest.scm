@@ -1,5 +1,4 @@
-;; What building and deploying the site needs: Haunt, a Scheme highlighter,
-;; the fonts, subset to WOFF2 by fonttools, and chaudron.
+;; Building and deploying the site.
 
 (specifications->manifest
  '("guile"

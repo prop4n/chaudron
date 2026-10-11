@@ -1,12 +1,5 @@
-;; Port forwards and a fixed address on an Orange Livebox, from the local
-;; network.
-;;
-;;   guile -L lib examples/livebox.scm dry-run    see what would change
-;;   guile -L lib examples/livebox.scm            apply
-;;   guile -L lib examples/livebox.scm destroy    remove them
-;;
-;; Needs LIVEBOX_PASSWORD, and LIVEBOX_USERNAME if it is not admin, in the
-;; environment or in .env.  The Livebox provider is experimental.
+;; Port forwards and a fixed address on an Orange Livebox.
+;; guile -L lib examples/livebox.scm [dry-run | destroy]
 
 (use-modules (chaudron)
              (chaudron livebox)

@@ -1,13 +1,5 @@
-;; A Hetzner server running Guix System, with nginx serving a directory over
-;; HTTPS, and its DNS record at Cloudflare.  Its system is in
-;; guix-system-os.scm: change the domain there too.
-;;
-;;   guile -L lib examples/guix-system.scm           deploy, or update
-;;   guile -L lib examples/guix-system.scm destroy   delete everything
-;;
-;; Needs HCLOUD_TOKEN and CLOUDFLARE_API_TOKEN, in the environment or in
-;; .env, and guix, ssh and a Guix signing key on this machine.  The first
-;; run erases the server's disk to install Guix System: about eight minutes.
+;; Guix System on a Hetzner server, serving public/ over HTTPS.
+;; guile -L lib examples/guix-system.scm [destroy]
 
 (use-modules (chaudron)
              (chaudron hetzner)

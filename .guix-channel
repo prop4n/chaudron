@@ -1,4 +1,4 @@
-;; chaudron as a Guix channel: its package is in .guix/modules.
+;; chaudron as a Guix channel.
 
 (channel
  (version 0)

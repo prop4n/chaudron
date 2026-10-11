@@ -1,11 +1,5 @@
-;; A static site served by Cloudflare, with HTTPS, and no server: the files
-;; of a directory, at a domain of yours.
-;;
-;;   guile -L lib examples/static-site.scm           deploy, or update
-;;   guile -L lib examples/static-site.scm destroy   delete it
-;;
-;; Needs CLOUDFLARE_API_TOKEN, allowed to edit Workers, and DNS in the zone
-;; of the domain.
+;; A static site on Cloudflare, at a domain of yours.
+;; guile -L lib examples/static-site.scm [destroy]
 
 (use-modules (chaudron)
              (chaudron cloudflare)

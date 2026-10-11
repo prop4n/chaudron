@@ -1,10 +1,5 @@
-;; A server at Hetzner, reachable over SSH with your key.
-;;
-;;   guile -L lib examples/server.scm dry-run    see what would change
-;;   guile -L lib examples/server.scm            deploy
-;;   guile -L lib examples/server.scm destroy    delete everything
-;;
-;; Needs HCLOUD_TOKEN, in the environment or in .env.
+;; A server at Hetzner, reachable over SSH.
+;; guile -L lib examples/server.scm [dry-run | destroy]
 
 (use-modules (chaudron)
              (chaudron hetzner)

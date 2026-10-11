@@ -1,9 +1,4 @@
-;;; Builds the website and deploys it to chaudron.dev, as a Cloudflare
-;;; Worker serving public/.  From site/:
-;;;
-;;;   guix time-machine -C channels.lock.scm -- shell -m manifest.scm -- guile deploy.scm
-;;;
-;;; The Cloudflare token is read from .env.
+;;; Builds the site and deploys it to chaudron.dev: see README.md.
 
 (use-modules (chaudron)
              (chaudron cloudflare)

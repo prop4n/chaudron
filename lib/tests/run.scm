@@ -1,7 +1,4 @@
-;; Run every test file, each in its own Guile, and say which ones failed.
-;; From lib/:
-;;
-;;   guile -L . tests/run.scm
+;; Runs every test file: guile -L . tests/run.scm
 
 (use-modules (ice-9 ftw)
              (srfi srfi-1))
