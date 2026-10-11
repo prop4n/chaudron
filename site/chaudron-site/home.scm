@@ -204,10 +204,10 @@
             (div (@ (class "wrap split"))
                  (div
                   (h2 "Get started")
-                  (p "chaudron needs Guile 3, guile-json, guile-gnutls and "
-                     "guile-gcrypt. "
-                     "Guix is the easiest way to get them, not a requirement. "
-                     "Until chaudron is packaged, point Guile at the library.")
+                  (p "With Guix, a project pins chaudron in its own "
+                     (code "channels.scm") " and runs it with "
+                     (code "guix time-machine") ": nothing to install. "
+                     "On Debian and Ubuntu, apt has all it needs.")
                   (p (a (@ (href "/docs/installation/")) "Installation")
                      " · "
                      (a (@ (href "/docs/first-deployment/")) "Your first deployment"))
@@ -217,11 +217,13 @@
                        (list `(pre (@ (class "shell"))
                                    (code
                                     (span (@ (class "prompt")) "$ ")
-                                    "git clone " ,%repository "\n"
+                                    "guix time-machine -C channels.scm -- \\\n"
+                                    "    describe -f channels > channels.lock.scm\n"
                                     (span (@ (class "prompt")) "$ ")
-                                    "guix shell -m chaudron/lib/manifest.scm\n"
+                                    "guix time-machine -C channels.lock.scm -- \\\n"
+                                    "    shell guile chaudron\n"
                                     (span (@ (class "prompt")) "$ ")
-                                    "HCLOUD_TOKEN=… guile -L chaudron/lib deploy.scm")))))))
+                                    "guile deploy.scm")))))))
 
 (define (home site posts)
   (page "index.html"

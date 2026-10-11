@@ -10,6 +10,21 @@ then deletes it. You need a Hetzner account and an SSH key.
 > Servers cost money while they exist. The one made here costs a few cents
 > an hour; the last step deletes it.
 
+## Set up the project
+
+Make a directory for it. With Guix, put in it the `channels.scm` shown in
+[Installation](/docs/installation/#with-guix), pin the versions, and open
+the shell where chaudron is:
+
+```sh
+$ mkdir box && cd box
+$ guix time-machine -C channels.scm -- describe -f channels > channels.lock.scm
+$ guix time-machine -C channels.lock.scm -- shell guile chaudron
+```
+
+On Debian or Ubuntu, set `GUILE_LOAD_PATH` as shown there instead. The
+commands below run in this directory.
+
 ## Get a token
 
 In the [Hetzner Console](https://console.hetzner.cloud), open a project,
@@ -60,7 +75,7 @@ server: chaudron knows the server depends on them.
 ## See what it would do
 
 ```sh
-$ guile -L chaudron/lib deploy.scm dry-run
+$ guile deploy.scm dry-run
 ```
 
 ```output
@@ -75,7 +90,7 @@ Nothing exists yet, so the server's address is unknown.
 ## Deploy
 
 ```sh
-$ guile -L chaudron/lib deploy.scm
+$ guile deploy.scm
 ```
 
 ```output
@@ -102,7 +117,7 @@ The server is resized in place; it is powered off for a moment.
 ## Clean up
 
 ```sh
-$ guile -L chaudron/lib deploy.scm destroy
+$ guile deploy.scm destroy
 ```
 
 ```output

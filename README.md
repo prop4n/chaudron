@@ -31,7 +31,7 @@ returns it, with outputs such as its address for the next calls.
 ```
 
 ```
-$ guile -L chaudron/lib deploy.scm
+$ guile deploy.scm
 chaudron: create hetzner-server/forge
 chaudron: create cloudflare-dns-record/git
 ```
@@ -55,31 +55,35 @@ See [Writing a provider](https://chaudron.dev/docs/writing-a-provider/).
 
 ## Getting started
 
-With Guix, the repository is a channel:
+With Guix, a project says which chaudron it uses in its own `channels.scm`,
+next to its program; nothing is installed globally:
 
 ```scheme
-(channel
- (name 'chaudron)
- (url "https://github.com/prop4n/chaudron")
- (branch "main")
- (introduction
-  (make-channel-introduction
-   "86088179a3b0db539f47047c2dfe12d1d62b353d"
-   (openpgp-fingerprint
-    "4707 DBF9 AD31 C133 DC3D  E410 822B CCA9 C126 8873"))))
+(cons (channel
+       (name 'chaudron)
+       (url "https://github.com/prop4n/chaudron")
+       (branch "main")
+       (introduction
+        (make-channel-introduction
+         "86088179a3b0db539f47047c2dfe12d1d62b353d"
+         (openpgp-fingerprint
+          "4707 DBF9 AD31 C133 DC3D  E410 822B CCA9 C126 8873"))))
+      %default-channels)
 ```
 
+Pin the exact versions once, then run the program with them:
+
 ```sh
-guix pull && guix install chaudron
-guile deploy.scm
+guix time-machine -C channels.scm -- describe -f channels > channels.lock.scm
+guix time-machine -C channels.lock.scm -- shell guile chaudron -- guile deploy.scm
 ```
 
 On Debian or Ubuntu:
 
 ```sh
 sudo apt install guile-3.0 guile-json guile-gnutls guile-gcrypt
-git clone https://github.com/prop4n/chaudron
-guile -L chaudron/lib deploy.scm
+git clone https://github.com/prop4n/chaudron ~/src/chaudron
+GUILE_LOAD_PATH=~/src/chaudron/lib guile deploy.scm
 ```
 
 Tokens come from the environment, `HCLOUD_TOKEN` or `CLOUDFLARE_API_TOKEN`,

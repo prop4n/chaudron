@@ -54,7 +54,7 @@ files on the local disk, which you can run without any account.
 ```
 
 ```sh
-$ guile -L chaudron/lib -L . files.scm
+$ guile -L . files.scm
 ```
 
 ```output

@@ -44,7 +44,7 @@ Since a deployment is a program, it can build the site first, with
 ## Run it
 
 ```sh
-$ guile -L chaudron/lib deploy.scm
+$ guile deploy.scm
 ```
 
 ```output
@@ -76,7 +76,7 @@ or removing the domain later changes it in place.
 ## Clean up
 
 ```sh
-$ guile -L chaudron/lib deploy.scm destroy
+$ guile deploy.scm destroy
 ```
 
 ```output

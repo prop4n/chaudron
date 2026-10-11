@@ -89,7 +89,7 @@ server needs nothing else.
 ## Run it
 
 ```sh
-$ guile -L chaudron/lib deploy.scm
+$ guile deploy.scm
 ```
 
 ```output
@@ -132,7 +132,7 @@ Two things to know, both seen while testing this recipe:
 ## Clean up
 
 ```sh
-$ guile -L chaudron/lib deploy.scm destroy
+$ guile deploy.scm destroy
 ```
 
 ```output

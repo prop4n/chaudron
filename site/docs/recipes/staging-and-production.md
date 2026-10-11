@@ -64,7 +64,7 @@ use its id.
 ## Run it
 
 ```sh
-$ guile -L chaudron/lib deploy.scm staging
+$ guile deploy.scm staging
 ```
 
 ```output
@@ -74,7 +74,7 @@ chaudron: create hetzner-server/web-1
 ```
 
 ```sh
-$ guile -L chaudron/lib deploy.scm prod
+$ guile deploy.scm prod
 ```
 
 ```output
@@ -92,7 +92,7 @@ Each stage is deleted on its own; destroying staging leaves production
 alone:
 
 ```sh
-$ guile -L chaudron/lib deploy.scm destroy staging
-$ guile -L chaudron/lib deploy.scm destroy prod
-$ guile -L chaudron/lib deploy.scm destroy shared
+$ guile deploy.scm destroy staging
+$ guile deploy.scm destroy prod
+$ guile deploy.scm destroy shared
 ```

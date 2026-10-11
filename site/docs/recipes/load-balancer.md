@@ -74,7 +74,7 @@ runcmd:
 ## Run it
 
 ```sh
-$ guile -L chaudron/lib deploy.scm
+$ guile deploy.scm
 ```
 
 ```output
@@ -103,7 +103,7 @@ A server's own address does not answer on port 80.
 ## Clean up
 
 ```sh
-$ guile -L chaudron/lib deploy.scm destroy
+$ guile deploy.scm destroy
 ```
 
 ```output
