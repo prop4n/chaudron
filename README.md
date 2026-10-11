@@ -88,7 +88,7 @@ renaming, concurrency, credentials, and every resource.
 
 | Directory | |
 |---|---|
-| `lib/` | the library, its tests and examples |
+| `lib/` | the library and its tests |
 | `site/` | [chaudron.dev](https://chaudron.dev), built with Haunt and deployed with chaudron itself |
 
 ## Development

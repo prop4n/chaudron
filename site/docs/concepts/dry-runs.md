@@ -41,7 +41,7 @@ value cannot be compared yet.
 
 ## A dry-run switch
 
-The examples take the mode from the command line:
+A program can take the mode from the command line:
 
 ```scheme
 (use-modules (ice-9 match))
