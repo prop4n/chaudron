@@ -17,6 +17,7 @@
             with-stage
             ensure-resource
             created!
+            moved
             destroy-stage
             exit-on-failure?)
   #:re-export (report
@@ -126,6 +127,62 @@ threads at once."
                               current props))))
     (save! props outputs)
     (make-resource kind name props outputs)))
+
+;;; Moving resources.
+
+(define (moved kind from to)
+  "Tell chaudron that resource FROM of KIND is now called TO, so that it
+keeps the real resource instead of deleting it and creating another.  Call it
+before declaring TO.  Once the resource is moved, it does nothing: it can be
+left in the program."
+  (let ((stage (or (current-stage)
+                   (error "resource moved outside of with-stage" kind from)))
+        (from-key (cons kind from))
+        (to-key (cons kind to)))
+    (with-mutex (stage-lock stage)
+      (when (member to-key (stage-seen stage))
+        (error "cannot move a resource onto one already declared" kind to))
+      (let ((entry (hash-ref (stage-entries stage) from-key)))
+        (when entry
+          (when (hash-ref (stage-entries stage) to-key)
+            (error "cannot move a resource onto one that exists" kind to))
+          (report "move ~a to ~a~a" (resource-id kind from) (resource-id kind to)
+                  (if (stage-dry-run? stage) " (dry run)" ""))
+          (rename-entry! stage entry to))))))
+
+(define (rename-entry! stage entry name)
+  "Rename ENTRY to NAME, along with the dependencies of the other entries on
+it, saving them unless this is a dry run.  STAGE's lock must be held."
+  (define (rename-dependency key)
+    (if (equal? key (entry-key entry))
+        (cons (car key) name)
+        key))
+  (define renamed
+    (map (lambda (field)
+           (if (eq? (car field) 'name) (cons 'name name) field))
+         entry))
+  (define dependents
+    (filter-map (lambda (other)
+                  (let ((depends-on (or (assq-ref other 'depends-on) '())))
+                    (and (member (entry-key entry) depends-on)
+                         (map (lambda (field)
+                                (if (eq? (car field) 'depends-on)
+                                    (cons 'depends-on
+                                          (map rename-dependency depends-on))
+                                    field))
+                              other))))
+                (stage-entry-list stage)))
+
+  (hash-remove! (stage-entries stage) (entry-key entry))
+  (for-each (lambda (entry)
+              (hash-set! (stage-entries stage) (entry-key entry) entry))
+            (cons renamed dependents))
+  (unless (stage-dry-run? stage)
+    ;; Save the new names before forgetting the old one: if this is
+    ;; interrupted, both remain, and the next run refuses to go on.
+    (for-each (cut save-entry! (stage-name stage) <>) (cons renamed dependents))
+    (delete-entry! (stage-name stage) (assq-ref entry 'kind)
+                   (assq-ref entry 'name))))
 
 ;;; Deleting resources.
 

@@ -235,6 +235,70 @@ protected ~a" a))
     '()
     (run-calls (with-stage "half" (fake-thing "h" #:size 5))))
 
+  ;; Moving resources.
+
+  (test-equal "moving a resource keeps the real one"
+    '(() #t)
+    (let* ((id (with-stage "moves" (output (fake-thing "old") 'id)))
+           (calls (run-calls
+                   (with-stage "moves"
+                     (moved 'fake-thing "old" "new")
+                     (unless (equal? (output (fake-thing "new") 'id) id)
+                       (error "not the same resource"))))))
+      (list calls (and (string-contains log "move fake-thing/old to fake-thing/new")
+                       #t))))
+
+  (test-equal "a move left in the code does nothing"
+    '()
+    (run-calls (with-stage "moves"
+                 (moved 'fake-thing "old" "new")
+                 (fake-thing "new"))))
+
+  (test-equal "a moved resource is still deleted after those depending on it"
+    '(user thing)
+    (let* ((thing (with-stage "moves-deps" (output (fake-thing "thing") 'id))))
+      (with-stage "moves-deps"
+        (let ((thing (fake-thing "thing")))
+          (fake-thing "user" #:refs (list thing))))
+      (with-stage "moves-deps"
+        (moved 'fake-thing "thing" "renamed")
+        (let ((thing (fake-thing "renamed")))
+          (fake-thing "user" #:refs (list thing))))
+      (map (lambda (call)
+             (if (equal? call `(delete ,thing)) 'thing 'user))
+           (run-calls (destroy-stage "moves-deps")))))
+
+  (test-equal "a dry run only says it would move"
+    '((create "dry-new"))
+    (begin
+      (with-stage "moves-dry" (fake-thing "dry-old"))
+      (run-calls (with-stage "moves-dry" #:dry-run? #t
+                   (moved 'fake-thing "dry-old" "dry-new")
+                   (fake-thing "dry-new")))
+      (unless (string-contains log "move fake-thing/dry-old to fake-thing/dry-new (dry run)")
+        (error "no report" log))
+      ;; Nothing was saved: without the move, the old one is an orphan.
+      (run-calls (with-stage "moves-dry"
+                   (fake-thing "dry-old")
+                   (fake-thing "dry-new")))))
+
+  (test-assert "refuses to move onto an existing resource"
+    (guard (e ((error? e) (string-contains (exception-message e) "move")))
+      (with-stage "moves-clash"
+        (fake-thing "a")
+        (fake-thing "b"))
+      (with-stage "moves-clash"
+        (moved 'fake-thing "a" "b")
+        (fake-thing "b"))
+      #f))
+
+  (test-assert "refuses to move onto a resource already declared"
+    (guard (e ((error? e) (string-contains (exception-message e) "move")))
+      (with-stage "moves-late"
+        (fake-thing "x")
+        (moved 'fake-thing "y" "x"))
+      #f))
+
   ;; Dry runs.
 
   (test-equal "a dry run changes nothing"

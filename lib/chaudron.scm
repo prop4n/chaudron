@@ -13,6 +13,7 @@
                stage-name
                ensure-resource
                created!
+               moved
                report
                chaudron-error?
                exit-on-failure?

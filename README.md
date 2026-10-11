@@ -47,6 +47,22 @@ in the environment taking precedence. Keep it out of version control.
   `&chaudron-error` is raised instead; it keeps the original error, so that
   `hetzner-error?` and the like still recognize it.
 
+### Renaming resources
+
+Renaming a resource in the program would delete the old one and create a new
+one. To keep the real resource, say it moved, before declaring it:
+
+```scheme
+(with-stage "prod"
+  (moved 'hetzner-server "forge" "forge2")
+  (hetzner-server "forge2" ...))
+```
+
+The state follows, along with the resources that depend on it; then the
+resource converges as usual, so that its name at Hetzner becomes
+`forge2-prod`, in place (pass `#:name` to keep the old one). Once moved, the
+`moved` does nothing and can stay in the program.
+
 ### Dry runs
 
 `(with-stage "prod" #:dry-run? #t ...)` runs the same code but changes
