@@ -77,6 +77,7 @@ The text starts here.
 | ```` ```scheme deploy.scm ```` | the same, titled "deploy.scm" |
 | ```` ```output ```` | what chaudron prints, its `chaudron:` lines in green |
 | ```` ```sh ```` | commands; a leading `$ ` is shown as a prompt |
+| ```` ```project ```` | the tree of a project: one `@ file \| kind` line per file, a description, and an example between `~~~` lines; kind is `commit`, `generated`, `secret` or `optional` |
 | `> [!NOTE]`, `> [!TIP]` | a callout |
 | `> [!CAUTION]`, `> [!DANGER]` | a warning callout |
 | a table with `\|` | a table |
