@@ -192,8 +192,11 @@ Then:
 The first time, it boots the server into Hetzner's rescue system, **erases
 its disk**, installs a minimal Guix System, then deploys the configuration
 with `guix deploy`. Afterwards, it deploys again whenever the configuration
-file or the Guix in use (`guix describe`) changes. Changes to modules the
-file uses are not noticed: touch the file to deploy them.
+file or the Guix in use (`guix describe`) changes. Only the file's content
+is compared: changes to the modules or files it uses are not noticed, so
+edit the file, even a comment, to deploy them. Like `guix system
+reconfigure`, `guix deploy` does not restart running services: restart
+them with `herd restart` for a new configuration to take effect.
 
 `#:os` and `#:identity` are relative to the directory chaudron runs from,
 and kept as written in the state, so that the state works on any machine.
