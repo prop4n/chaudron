@@ -150,6 +150,32 @@
       (guix-system)
       commands)))
 
+(parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
+  (test-equal "keeps files as written, so that the state fits any machine"
+    (list (basename os-file) "~/.ssh/id_ed25519" #t #t)
+    (let ((cwd (getcwd)))
+      (chdir (dirname os-file))
+      (with-commands (describe (hashed "h1") ok keyscan ok) '()
+        (quietly
+         (lambda ()
+           (with-stage "paths"
+             (hetzner-guix-system "forge" #:server (forge)
+                                  #:os (basename os-file) #:ssh-key 7)))))
+      (chdir cwd)
+      (let ((props (assq-ref (call-with-input-file
+                                 (string-append (state-directory)
+                                                "/paths/hetzner-guix-system/forge.scm")
+                               read)
+                             'props)))
+        (list (assq-ref props 'os)
+              (assq-ref props 'identity)
+              ;; But deploys them as found from where chaudron runs.
+              (and (string-contains deployment os-file) #t)
+              (and (string-contains deployment
+                                    (string-append (getenv "HOME")
+                                                   "/.ssh/id_ed25519"))
+                   #t))))))
+
 (define failures (test-runner-fail-count (test-runner-current)))
 (test-end "hetzner-guix")
 (exit (zero? failures))

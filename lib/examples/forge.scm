@@ -37,8 +37,7 @@
 
     (hetzner-guix-system "forge"
                          #:server forge
-                         #:os (string-append (dirname (current-filename))
-                                             "/forge-os.scm")
+                         #:os "examples/forge-os.scm"
                          #:ssh-key key)
 
     (format #t "ssh root@~a~%" (output forge 'ipv4))

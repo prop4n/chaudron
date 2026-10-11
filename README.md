@@ -179,6 +179,9 @@ with `guix deploy`. Afterwards, it deploys again whenever the configuration
 file or the Guix in use (`guix describe`) changes. Changes to modules the
 file uses are not noticed: touch the file to deploy them.
 
+`#:os` and `#:identity` are relative to the directory chaudron runs from,
+and kept as written in the state, so that the state works on any machine.
+
 It needs `guix`, `ssh` and `ssh-keyscan` on the machine running chaudron,
 and a Guix signing key (`guix archive --generate-key`). Volumes are not
 mounted for you: add a `file-system` for their `linux-device`.
