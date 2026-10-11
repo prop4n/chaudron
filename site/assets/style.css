@@ -162,6 +162,27 @@ h3 { font-size: 1.15rem; font-weight: 700; }
 
 .masthead nav a:hover { color: var(--ink); }
 
+/* The main link of the bar, in a small green pixel frame. */
+.nav-action {
+  --px: 2px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.35rem;
+  border: calc(5 * var(--px)) solid transparent;
+  border-image: url("/assets/frames/brew.svg") 5 fill / calc(5 * var(--px));
+  color: var(--iron);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.nav-action:hover { filter: brightness(1.08); }
+
+@media (prefers-color-scheme: dark) {
+  .nav-action { border-image-source: url("/assets/frames/brew-dark.svg"); }
+}
+
 /* Hero */
 
 .hero {

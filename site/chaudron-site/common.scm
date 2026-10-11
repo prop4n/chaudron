@@ -42,9 +42,10 @@
            (figcaption (@ (class "pot-title")) ,title)
            ,@body))
 
-(define* (header links #:key docs?)
-  "The bar at the top of every page, with LINKS, a list of (label . url).
-On documentation pages (DOCS?), it has a search button and a menu button."
+(define* (header links #:key docs? action)
+  "The bar at the top of every page, with LINKS, a list of (label . url),
+and ACTION, a (label . url) shown as a button after them.  On documentation
+pages (DOCS?), it has a search button and a menu button."
   `(header (@ (class "masthead"))
            (div (@ (class "wrap masthead-inner"))
                 (a (@ (class "brand") (href "/"))
@@ -61,6 +62,10 @@ On documentation pages (DOCS?), it has a search button and a menu button."
                           ,@(map (match-lambda
                                    ((label . url) `(a (@ (href ,url)) ,label)))
                                  links))
+                     ,@(match action
+                         ((label . url)
+                          `((a (@ (class "nav-action") (href ,url)) ,label)))
+                         (#f '()))
                      ,@(if docs?
                            '((button (@ (class "menu-button") (type "button")
                                         (aria-expanded "false")

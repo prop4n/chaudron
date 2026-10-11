@@ -59,6 +59,7 @@ with HIGHLIGHT."
   ;; page, outlines are lighter than the page, or they would not show.
   '(("iron" "#04050a" "#1d1d2c" "#34344a")
     ("pale" "#04050a" "#e4e5ed" "#ffffff")
+    ("brew" "#04050a" "#84ef2e" "#c4f78f")
     ("note" "#04050a" "#e9eaf1" "#ffffff")
     ("caution" "#04050a" "#fbefd9" "#fffaf0")
     ("note-dark" "#40405a" "#1a1a27" "#2b2b3e")

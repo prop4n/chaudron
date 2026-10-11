@@ -233,8 +233,8 @@
                   %description
                   (list (header `(("How it works" . "#run")
                                   ("Providers" . "#providers")
-                                  ("Docs" . "/docs/")
-                                  ("Source" . ,%repository)))
+                                  ("Source" . ,%repository))
+                                #:action '("Docs" . "/docs/"))
                         `(main
                           ,(hero)
                           ,(run-section)

@@ -162,18 +162,9 @@
   (let* ((groups (doc-groups posts))
          (reading-order (append-map cdr groups)))
     (cons
-     ;; /docs/ leads to the first page.
+     ;; /docs/ is the first page itself, rather than a redirection to it.
      (page "docs/index.html"
-           `((doctype "html")
-             (html (@ (lang "en"))
-                   (head (meta (@ (charset "utf-8")))
-                         (title "chaudron docs")
-                         (meta (@ (http-equiv "refresh")
-                                  (content ,(string-append
-                                             "0; url="
-                                             (doc-url (car reading-order)))))))
-                   (body (a (@ (href ,(doc-url (car reading-order))))
-                            "Documentation")))))
+           (doc-page (car reading-order) groups reading-order))
      (map (lambda (post)
             (page (string-append "docs/" (doc-slug post) "/index.html")
                   (doc-page post groups reading-order)))
