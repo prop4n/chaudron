@@ -1,12 +1,22 @@
 # chaudron's website
 
 The home page and the documentation, built with
-[Haunt](https://dthompson.us/projects/haunt.html). Everything it needs,
-fonts included, comes from Guix, at the revision pinned in `channels.scm`:
+[Haunt](https://dthompson.us/projects/haunt.html), and deployed to
+[chaudron.dev](https://chaudron.dev) with chaudron itself. Everything it
+needs, fonts and chaudron included, comes from the channels pinned in
+`channels.lock.scm`:
 
 ```sh
-guix time-machine -C channels.scm -- shell -m manifest.scm -- haunt build
-guix time-machine -C channels.scm -- shell -m manifest.scm -- haunt serve --watch
+guix time-machine -C channels.lock.scm -- shell -m manifest.scm -- haunt serve --watch
+guix time-machine -C channels.lock.scm -- shell -m manifest.scm -- guile deploy.scm
+```
+
+The first serves the site on <http://localhost:8080>; the second builds it
+and deploys it, with the Cloudflare token of `.env`. To move to newer
+versions of Guix and chaudron:
+
+```sh
+guix time-machine -C channels.scm -- describe -f channels > channels.lock.scm
 ```
 
 The site is written to `public/`. The search needs a server: it does not

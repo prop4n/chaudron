@@ -1,5 +1,5 @@
-;; What building the site needs: Haunt, a Scheme highlighter, and the fonts,
-;; which are subset to WOFF2 by fonttools.
+;; What building and deploying the site needs: Haunt, a Scheme highlighter,
+;; the fonts, subset to WOFF2 by fonttools, and chaudron.
 
 (specifications->manifest
  '("guile"
@@ -8,4 +8,5 @@
    "python-fonttools"
    "python-brotli"
    "font-atkinson-hyperlegible-next"
-   "font-commit-mono"))
+   "font-commit-mono"
+   "chaudron"))

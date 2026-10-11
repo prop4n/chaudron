@@ -2,7 +2,7 @@
 ;;; documentation, written in Markdown under docs/.  The pieces are in
 ;;; chaudron-site/.
 ;;;
-;;;   guix time-machine -C channels.scm -- shell -m manifest.scm -- haunt build
+;;;   guix time-machine -C channels.lock.scm -- shell -m manifest.scm -- haunt build
 ;;;
 ;;; The result is in public/.
 

@@ -1,15 +1,10 @@
-;; The Guix revision the site is built with, so that it builds the same
-;; everywhere:
-;;
-;;   guix time-machine -C channels.scm -- shell -m manifest.scm -- haunt build
-
-(list (channel
-       (name 'guix)
-       (url "https://git.guix.gnu.org/guix.git")
-       (branch "master")
-       (commit "17a0213a82f2fb6b02a56f42752764da459bb7d2")
+(cons (channel
+       (name 'chaudron)
+       (url "https://github.com/prop4n/chaudron")
+       (branch "main")
        (introduction
         (make-channel-introduction
-         "9edb3f66fd807b096b48283debdcddccfea34bad"
+         "86088179a3b0db539f47047c2dfe12d1d62b353d"
          (openpgp-fingerprint
-          "BBB0 2DDF 2CEA F6A8 0D1D  E643 A2A0 6DF2 A33A 54FA")))))
+          "4707 DBF9 AD31 C133 DC3D  E410 822B CCA9 C126 8873"))))
+      %default-channels)
