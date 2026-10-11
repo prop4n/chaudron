@@ -155,6 +155,7 @@
                                          ,(toc-list toc)))
                                 '()))
                     %search-dialog)
+              #:path (doc-url post)
               #:stylesheets '("/assets/style.css" "/assets/docs.css")
               #:scripts '("/assets/docs.js"))))
 

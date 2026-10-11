@@ -84,9 +84,14 @@ pages (DOCS?), it has a search button and a menu button."
                    ", version 3 or later. This site is built with Haunt.")
                 (a (@ (href ,%repository)) "Source"))))
 
+(define %site "https://chaudron.dev")
+
 (define* (document title description body
-                   #:key (stylesheets '("/assets/style.css")) (scripts '()))
-  "A whole HTML page titled TITLE, with BODY, a list of elements."
+                   #:key (path "/") (stylesheets '("/assets/style.css"))
+                   (scripts '()))
+  "A whole HTML page titled TITLE, with BODY, a list of elements, served at
+PATH.  Its title, description and image are what chat apps and social
+networks show when a link to it is shared."
   `((doctype "html")
     (html (@ (lang "en"))
           (head
@@ -95,6 +100,20 @@ pages (DOCS?), it has a search button and a menu button."
                     (content "width=device-width, initial-scale=1")))
            (title ,title)
            (meta (@ (name "description") (content ,description)))
+           (link (@ (rel "canonical") (href ,(string-append %site path))))
+           (meta (@ (property "og:type") (content "website")))
+           (meta (@ (property "og:site_name") (content "chaudron")))
+           (meta (@ (property "og:title") (content ,title)))
+           (meta (@ (property "og:description") (content ,description)))
+           (meta (@ (property "og:url") (content ,(string-append %site path))))
+           (meta (@ (property "og:image")
+                    (content ,(string-append %site "/assets/og.png"))))
+           (meta (@ (property "og:image:width") (content "1200")))
+           (meta (@ (property "og:image:height") (content "630")))
+           (meta (@ (property "og:image:alt")
+                    (content "The chaudron cauldron, and: infrastructure as plain Guile programs.")))
+           (meta (@ (name "twitter:card") (content "summary_large_image")))
+           (meta (@ (name "theme-color") (content "#4db62e")))
            (link (@ (rel "icon") (type "image/png")
                     (href "/assets/cauldron.png")))
            (link (@ (rel "preload") (as "font") (type "font/woff2")
