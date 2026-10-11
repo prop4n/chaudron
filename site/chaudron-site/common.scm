@@ -73,8 +73,10 @@ On documentation pages (DOCS?), it has a search button and a menu button."
            (div (@ (class "wrap footer-inner"))
                 (img (@ (src "/assets/cauldron.png") (alt "")
                         (width "35") (height "35")))
-                (p "chaudron is written in Guile Scheme. This site is built "
-                   "with Haunt.")
+                (p "chaudron is free software, under the "
+                   (a (@ (href "https://www.gnu.org/licenses/gpl-3.0.html"))
+                      "GNU GPL")
+                   ", version 3 or later. This site is built with Haunt.")
                 (a (@ (href ,%repository)) "Source"))))
 
 (define* (document title description body

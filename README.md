@@ -112,5 +112,9 @@ cost nothing.
 
 ## Status
 
-chaudron is young, and its interface may still change. No license has been
-chosen yet.
+chaudron is young, and its interface may still change.
+
+## License
+
+chaudron is free software, under the GNU General Public License, version 3
+or any later version. See [COPYING](COPYING).
