@@ -1,0 +1,20 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Guile and the libraries chaudron needs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y guile-3.0 guile-json guile-gnutls guile-gcrypt
+
+      - name: Run the tests
+        working-directory: lib
+        run: guile -L . tests/run.scm
