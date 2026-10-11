@@ -1,8 +1,12 @@
+;; The exact commits of the channels in channels.scm.  To move to newer ones:
+;;
+;;   guix time-machine -C channels.scm -- describe -f channels > channels.lock.scm
+
 (list (channel
        (name 'chaudron)
        (url "https://github.com/prop4n/chaudron")
        (branch "main")
-       (commit "8751f8901592f6d3aed6e7caac30afee4d9ba009")
+       (commit "626295f063dba225c855ca673ab57d5217b9f25c")
        (introduction
         (make-channel-introduction
          "86088179a3b0db539f47047c2dfe12d1d62b353d"
@@ -12,7 +16,7 @@
        (name 'guix)
        (url "https://git.guix.gnu.org/guix.git")
        (branch "master")
-       (commit "602c16248616453cbd531113fdc13511bd1a626e")
+       (commit "2a11acef8c2f8eb70e6f18abaddf8e22459e6006")
        (introduction
         (make-channel-introduction
          "9edb3f66fd807b096b48283debdcddccfea34bad"
