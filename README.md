@@ -240,6 +240,20 @@ carry the comment `chaudron: stage <stage>`.
 |---|---|---|
 | `cloudflare-dns-record` | `id`, `zone-id`, `name` | zone, type |
 
+`cloudflare-worker` serves a directory of static files, at a domain or on
+its `workers.dev` address; it is published again whenever a file changes,
+uploading only the new ones. The token then needs the "Workers Scripts:
+Edit" permission too; set `CLOUDFLARE_ACCOUNT_ID` if it reaches several
+accounts.
+
+```scheme
+(cloudflare-worker "site" #:assets "public" #:domain "www.example.com")
+```
+
+| Resource | Outputs | Changes that replace it |
+|---|---|---|
+| `cloudflare-worker` | `name`, `url` | name |
+
 ## Livebox (experimental)
 
 Orange's Livebox has an undocumented API on the local network; this was only
@@ -310,8 +324,10 @@ guile -L . tests/hetzner.scm
 guile -L . tests/hetzner-resources.scm
 guile -L . tests/hetzner-guix.scm
 guile -L . tests/cloudflare.scm
+guile -L . tests/cloudflare-worker.scm
 guile -L . tests/env.scm
 guile -L . tests/livebox.scm
 ```
 
-Dependencies: Guile 3, guile-json, guile-gnutls (`guix shell -m manifest.scm`).
+Dependencies: Guile 3, guile-json, guile-gnutls, guile-gcrypt
+(`guix shell -m manifest.scm`).

@@ -3,8 +3,11 @@
 (define-module (chaudron cloudflare)
   #:use-module (chaudron cloudflare api)
   #:use-module (chaudron cloudflare dns)
+  #:use-module (chaudron cloudflare worker)
   #:re-export (cloudflare-dns-record
+               cloudflare-worker
                cloudflare-token
+               cloudflare-account-id
                cloudflare-error?
                cloudflare-error-status
                cloudflare-error-code)

@@ -33,7 +33,10 @@
         (append requests
                 (list (list method
                             (url->path url)
-                            (and body (json-string->scm body))
+                            ;; Multipart bodies are kept as they are.
+                            (and body (or (false-if-exception
+                                           (json-string->scm body))
+                                          body))
                             headers))))
   (when (null? responses)
     (error "unexpected request" method url))
