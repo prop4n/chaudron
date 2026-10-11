@@ -103,6 +103,7 @@ renaming, concurrency, credentials, and every resource.
 | Directory | |
 |---|---|
 | `lib/` | the library and its tests |
+| `examples/` | programs to start from: a server, a static site, Guix System, a Livebox |
 | `site/` | [chaudron.dev](https://chaudron.dev), built with Haunt and deployed with chaudron itself |
 
 ## Development

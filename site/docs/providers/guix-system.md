@@ -101,6 +101,11 @@ deploying.
 > restarted, with `herd restart`, or the server reboots. See
 > [A static site on Guix System](/docs/static-site/#updating-the-site).
 
+On a new server, HTTPS with `certbot-service-type` works from the first
+deployment: nginx starts with a temporary certificate, which certbot then
+replaces. [examples/guix-system.scm](https://github.com/prop4n/chaudron/tree/main/examples)
+does just that.
+
 ## Volumes
 
 Volumes are not mounted for you on Guix System: add a `file-system` for
