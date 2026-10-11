@@ -59,13 +59,13 @@ with HIGHLIGHT."
   ;; page, outlines are lighter than the page, or they would not show.
   '(("iron" "#04050a" "#1d1d2c" "#34344a")
     ("pale" "#04050a" "#e4e5ed" "#ffffff")
-    ("brew" "#04050a" "#84ef2e" "#c4f78f")
+    ("brew" "#04050a" "#4db62e" "#6ed62d")
     ("note" "#04050a" "#e9eaf1" "#ffffff")
     ("caution" "#04050a" "#fbefd9" "#fffaf0")
     ("note-dark" "#40405a" "#1a1a27" "#2b2b3e")
     ("caution-dark" "#6b5a3a" "#2a2418" "#3d3420")
     ("iron-dark" "#40405a" "#1d1d2e" "#2e2e44")
-    ("brew-dark" "#40405a" "#84ef2e" "#c4f78f")
+    ("brew-dark" "#40405a" "#4db62e" "#6ed62d")
     ("dusk-dark" "#40405a" "#2b2b3e" "#4a4a66")))
 
 (define (frames site posts)
