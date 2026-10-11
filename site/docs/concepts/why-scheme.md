@@ -23,18 +23,60 @@ and what runs on it, together, versioned together.
 A procedure is a pattern. Here, `website` makes a server, opens its
 firewall, points a DNS record at it, and installs a Guix System serving the
 site over HTTPS. Two websites are two calls, made at the same time with
-`concurrently`:
+`concurrently`. Choose a file to see it.
 
-```scheme deploy.scm
+```project
+@ deploy.scm | commit
+The program: the resources of a website, and the two websites.
+~~~ scheme
 (use-modules (chaudron)
              (chaudron hetzner)
              (chaudron cloudflare)
-             (ice-9 match)
-             (ice-9 pretty-print))
+             (ice-9 match))
 
 (load-env-file ".env")
 
 (define %zone "example.com")
+
+(load "system.scm")
+
+(define (website name key)
+  "A server named NAME running Guix System, serving NAME.%zone over HTTPS."
+  (let* ((domain (string-append name "." %zone))
+         (web (hetzner-firewall name #:rules (list (allow-in 'tcp 22)
+                                                   (allow-in 'tcp 80)
+                                                   (allow-in 'tcp 443))))
+         (server (hetzner-server name #:type "cx23" #:location "fsn1"
+                                 #:ssh-keys (list key)
+                                 #:firewalls (list web))))
+    (cloudflare-dns-record name #:zone %zone #:content (output server 'ipv4))
+    (hetzner-guix-system name
+                         #:server server
+                         #:os (write-system! name domain)
+                         #:ssh-key key)
+    (string-append "https://" domain "/")))
+
+(define (deploy)
+  (with-stage "sites"
+    (define key
+      (hetzner-ssh-key "me" #:public-key-file "~/.ssh/id_ed25519.pub"))
+    (for-each (lambda (url) (format #t "~a~%" url))
+              (call-with-values
+                  (lambda ()
+                    (concurrently (website "blog" key)
+                                  (website "shop" key)))
+                list))))
+
+(match (command-line)
+  ((_ "destroy") (destroy-stage "sites"))
+  (_ (deploy)))
+~~~
+@ system.scm | commit
+The system of a website, as data: `system-of` returns it for a domain, `write-system!` writes it to a file.
+~~~ scheme
+;; The Guix system of a website, written by the program for each one.
+
+(use-modules (ice-9 pretty-print))
 
 (define (system-of domain)
   "The Guix system of a website at DOMAIN: nginx serving one page over
@@ -81,44 +123,67 @@ HTTPS, with a certificate from Let's Encrypt."
         (for-each (lambda (form) (pretty-print form port) (newline port))
                   (system-of domain))))
     file))
+~~~
+@ blog-os.scm | generated
+Written by the program for `blog`, and deployed by `hetzner-guix-system`.
+~~~ scheme
+(use-modules (gnu) (gnu machine hetzner) (guix gexp))
 
-(define (website name key)
-  "A server named NAME running Guix System, serving NAME.%zone over HTTPS."
-  (let* ((domain (string-append name "." %zone))
-         (web (hetzner-firewall name #:rules (list (allow-in 'tcp 22)
-                                                   (allow-in 'tcp 80)
-                                                   (allow-in 'tcp 443))))
-         (server (hetzner-server name #:type "cx23" #:location "fsn1"
-                                 #:ssh-keys (list key)
-                                 #:firewalls (list web))))
-    (cloudflare-dns-record name #:zone %zone #:content (output server 'ipv4))
-    (hetzner-guix-system name
-                         #:server server
-                         #:os (write-system! name domain)
-                         #:ssh-key key)
-    (string-append "https://" domain "/")))
+(use-service-modules certbot web)
 
-(define (deploy)
-  (with-stage "sites"
-    (define key
-      (hetzner-ssh-key "me" #:public-key-file "~/.ssh/id_ed25519.pub"))
-    (for-each (lambda (url) (format #t "~a~%" url))
-              (call-with-values
-                  (lambda ()
-                    (concurrently (website "blog" key)
-                                  (website "shop" key)))
-                list))))
+(define %base (make-hetzner-os "cx23"))
 
-(match (command-line)
-  ((_ "destroy") (destroy-stage "sites"))
-  (_ (deploy)))
+(operating-system
+ (inherit %base)
+ (host-name "web")
+ (services
+  (cons* (service
+          nginx-service-type
+          (nginx-configuration
+           (server-blocks
+            (list (nginx-server-configuration
+                   (server-name (list "blog.example.com"))
+                   (listen '("443 ssl" "[::]:443 ssl"))
+                   (ssl-certificate
+                    "/etc/certs/blog.example.com/fullchain.pem")
+                   (ssl-certificate-key
+                    "/etc/certs/blog.example.com/privkey.pem")
+                   (root (file-union
+                          "site"
+                          (list (list "index.html"
+                                      (plain-file
+                                       "index.html"
+                                       "<h1>blog.example.com</h1>\n"))))))))))
+         (service
+          certbot-service-type
+          (certbot-configuration
+           (certificates
+            (list (certificate-configuration
+                   (domains (list "blog.example.com"))
+                   (deploy-hook
+                    (program-file
+                     "nginx-reload"
+                     (gexp (let ((pid (call-with-input-file
+                                       "/var/run/nginx/pid"
+                                       read)))
+                             (kill pid SIGHUP))))))))))
+         (operating-system-user-services %base))))
+~~~
+@ shop-os.scm | generated
+The same, for `shop.example.com`.
+@ .env | secret
+The tokens of Hetzner and Cloudflare.
+~~~ sh
+HCLOUD_TOKEN=...
+CLOUDFLARE_API_TOKEN=...
+~~~
 ```
 
 ## Code is data
 
-`system-of` does not fill a text template: it returns the declaration of
-the system, a Scheme expression, with the domain put in place by the
-quasiquote, `` ` `` and `,`. `write-system!` writes it to a file, the one
+`system-of`, in `system.scm`, does not fill a text template: it returns
+the declaration of the system, a Scheme expression, with the domain put in
+place by the quasiquote, `` ` `` and `,`. `write-system!` writes it to a file, the one
 [`hetzner-guix-system`](/docs/guix-system/) deploys. A value defined once in
 the program, the domain, ends up in the DNS record, in nginx and in the
 certificate.

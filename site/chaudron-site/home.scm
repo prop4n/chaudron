@@ -127,7 +127,7 @@
                        (list (scheme %hero-code)
                              `(div (@ (class "pot-run"))
                                    (span (@ (class "prompt")) "$ ")
-                                   "guile -L . deploy.scm")
+                                   "guile deploy.scm")
                              (report "create hetzner-server/forge"
                                      "create cloudflare-dns-record/git"))
                        #:class "hero-pot"))))
