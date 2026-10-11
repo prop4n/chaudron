@@ -255,6 +255,121 @@
   .callout-caution .callout-title { color: #f3c98b; }
 }
 
+/* The tree of a project: radio buttons choose which file is shown. */
+
+.project {
+  display: grid;
+  grid-template-columns: 18.5rem minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+.project-input { position: absolute; opacity: 0; pointer-events: none; }
+
+.project-tree {
+  border: calc(5 * var(--px)) solid transparent;
+  border-image: url("/assets/frames/note.svg") 5 fill / calc(5 * var(--px));
+  padding: 0.25rem 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.project-root { margin: 0 0 0.25rem; padding: 0 0.4rem; color: var(--muted); }
+
+.project-file {
+  display: block;
+  white-space: nowrap;
+  padding: 0.2rem 0.4rem 0.2rem 1.2rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.project-nested { padding-left: 2.2rem; }
+
+.project-file:hover { color: var(--link); }
+
+.project-panel { display: none; }
+
+.project-panel > p { margin: 0 0 0.75rem; }
+
+.project-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.project-kind {
+  padding: 0 0.4rem;
+  border: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.project-kind-secret { border-color: #c98a2b; color: #8a5a12; }
+
+.project-kind-commit, .project-kind-generated {
+  border-color: var(--brew-deep);
+  color: var(--link);
+}
+
+.project-input:nth-of-type(1):checked ~ .project-panels > :nth-child(1),
+.project-input:nth-of-type(2):checked ~ .project-panels > :nth-child(2),
+.project-input:nth-of-type(3):checked ~ .project-panels > :nth-child(3),
+.project-input:nth-of-type(4):checked ~ .project-panels > :nth-child(4),
+.project-input:nth-of-type(5):checked ~ .project-panels > :nth-child(5),
+.project-input:nth-of-type(6):checked ~ .project-panels > :nth-child(6),
+.project-input:nth-of-type(7):checked ~ .project-panels > :nth-child(7),
+.project-input:nth-of-type(8):checked ~ .project-panels > :nth-child(8),
+.project-input:nth-of-type(9):checked ~ .project-panels > :nth-child(9),
+.project-input:nth-of-type(10):checked ~ .project-panels > :nth-child(10) {
+  display: block;
+}
+
+/* The chosen file, marked with a green pixel like the current page. */
+.project-input:nth-of-type(1):checked ~ .project-tree label:nth-of-type(1),
+.project-input:nth-of-type(2):checked ~ .project-tree label:nth-of-type(2),
+.project-input:nth-of-type(3):checked ~ .project-tree label:nth-of-type(3),
+.project-input:nth-of-type(4):checked ~ .project-tree label:nth-of-type(4),
+.project-input:nth-of-type(5):checked ~ .project-tree label:nth-of-type(5),
+.project-input:nth-of-type(6):checked ~ .project-tree label:nth-of-type(6),
+.project-input:nth-of-type(7):checked ~ .project-tree label:nth-of-type(7),
+.project-input:nth-of-type(8):checked ~ .project-tree label:nth-of-type(8),
+.project-input:nth-of-type(9):checked ~ .project-tree label:nth-of-type(9),
+.project-input:nth-of-type(10):checked ~ .project-tree label:nth-of-type(10) {
+  color: var(--link);
+  font-weight: 700;
+  background: linear-gradient(var(--brew-deep), var(--brew-deep))
+              0.4rem 50% / calc(2 * var(--px)) calc(2 * var(--px)) no-repeat;
+}
+
+.project-input:nth-of-type(1):focus-visible ~ .project-tree label:nth-of-type(1),
+.project-input:nth-of-type(2):focus-visible ~ .project-tree label:nth-of-type(2),
+.project-input:nth-of-type(3):focus-visible ~ .project-tree label:nth-of-type(3),
+.project-input:nth-of-type(4):focus-visible ~ .project-tree label:nth-of-type(4),
+.project-input:nth-of-type(5):focus-visible ~ .project-tree label:nth-of-type(5),
+.project-input:nth-of-type(6):focus-visible ~ .project-tree label:nth-of-type(6),
+.project-input:nth-of-type(7):focus-visible ~ .project-tree label:nth-of-type(7),
+.project-input:nth-of-type(8):focus-visible ~ .project-tree label:nth-of-type(8),
+.project-input:nth-of-type(9):focus-visible ~ .project-tree label:nth-of-type(9),
+.project-input:nth-of-type(10):focus-visible ~ .project-tree label:nth-of-type(10) {
+  outline: 2px solid var(--brew-deep);
+  outline-offset: -2px;
+}
+
+.project-panels .pot { margin-top: 0.5rem; }
+
+@media (prefers-color-scheme: dark) {
+  .project-tree { border-image-source: url("/assets/frames/note-dark.svg"); }
+  .project-kind-secret { color: #f3c98b; }
+}
+
+@media (max-width: 40rem) {
+  .project { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* Previous and next */
 
 .pager {

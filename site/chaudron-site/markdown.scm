@@ -3,10 +3,12 @@
 
 (define-module (chaudron-site markdown)
   #:use-module (chaudron-site common)
+  #:use-module (commonmark)
   #:use-module (ice-9 match)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-11)
+  #:use-module (srfi srfi-26)
   #:export (sxml-text
             annotate-headings))
 
@@ -53,17 +55,120 @@
 
 (define (code-block info text)
   "A block of code, in a frame titled with the file name given after its
-language (```scheme deploy.scm), or else with the language."
+language (```scheme deploy.scm), or else with the language.  A ```project
+block is the tree of a project instead."
   (let* ((text (string-trim-right text #\newline))
          (words (string-tokenize info))
          (language (if (null? words) "" (car words)))
          (title (if (> (length words) 1) (cadr words) language)))
-    (pot title
-         (list (match language
-                 ("scheme" (scheme text))
-                 ("output" (output-lines text))
-                 ((or "sh" "shell") (shell-lines text))
-                 (_ `(pre (code ,text))))))))
+    (if (string=? language "project")
+        (project text)
+        (pot title
+             (list (match language
+                     ("scheme" (scheme text))
+                     ("output" (output-lines text))
+                     ((or "sh" "shell") (shell-lines text))
+                     (_ `(pre (code ,text)))))))))
+
+;; The tree of a project: one entry per file, each starting with a line
+;;
+;;   @ deploy.scm | commit
+;;
+;; followed by a description, and optionally an example between ~~~ lines,
+;; the first one giving its language.
+
+(define %file-kinds
+  '(("commit" . "commit it")
+    ("generated" . "generated, commit it")
+    ("secret" . "keep it out of git")
+    ("optional" . "optional")))
+
+(define (project-entries text)
+  "Return the entries of TEXT as a list of (path kind description language
+example), EXAMPLE being #f when there is none."
+  (define (entry header lines)
+    (match (map string-trim-both (string-split (string-drop header 2) #\|))
+      ((path kind)
+       (let*-values (((description rest) (break (cut string-prefix? "~~~" <>)
+                                                 lines))
+                     ((language) (match rest
+                                   ((fence . _) (string-trim-both
+                                                 (string-drop fence 3)))
+                                   (() #f)))
+                     ((example) (match rest
+                                  ((_ . more)
+                                   (string-join (take-while
+                                                 (negate (cut string-prefix?
+                                                              "~~~" <>))
+                                                 more)
+                                                "\n"))
+                                  (() #f))))
+         (list path kind (string-join description " ") language example)))))
+  (let loop ((lines (string-split text #\newline)) (entries '()))
+    (match lines
+      (() (reverse entries))
+      ((header . rest)
+       (if (string-prefix? "@ " header)
+           (let-values (((own more) (break (cut string-prefix? "@ " <>) rest)))
+             (loop more (cons (entry header own) entries)))
+           (loop rest entries))))))
+
+(define (project text)
+  (let* ((entries (project-entries text))
+         (id (string-append "project-" (number->string (string-hash text) 36))))
+    (define (parent path)
+      ;; The entry of the directory holding PATH, if any.
+      (find (lambda (entry)
+              (let ((directory (car entry)))
+                (and (string-suffix? "/" directory)
+                     (not (string=? directory path))
+                     (string-prefix? directory path))))
+            entries))
+    (define (input-id n)
+      (string-append id "-" (number->string n)))
+    `(div (@ (class "project"))
+          ,@(map (lambda (n)
+                   `(input (@ (type "radio") (class "project-input")
+                              (name ,id) (id ,(input-id n))
+                              ,@(if (zero? n) '((checked "checked")) '()))))
+                 (iota (length entries)))
+          (div (@ (class "project-tree"))
+               (p (@ (class "project-root")) "my-project/")
+               ,@(map (match-lambda*
+                        (((path kind . _) n)
+                         (let ((name (match (parent path)
+                                       (#f path)
+                                       ((directory . _)
+                                        (string-drop path
+                                                     (string-length directory))))))
+                           `(label (@ (for ,(input-id n))
+                                      (class ,(if (parent path)
+                                                  "project-file project-nested"
+                                                  "project-file")))
+                                   ,name))))
+                      entries (iota (length entries))))
+          (div (@ (class "project-panels"))
+               ,@(map (match-lambda
+                        ((path kind description language example)
+                         `(div (@ (class "project-panel"))
+                               (p (@ (class "project-heading"))
+                                  (code ,path)
+                                  (span (@ (class ,(string-append
+                                                    "project-kind project-kind-"
+                                                    kind)))
+                                        ,(assoc-ref %file-kinds kind)))
+                               ,@(map transform (commonmark->sxml description))
+                               ,@(if example
+                                     (list (code-block
+                                            (string-append
+                                             (if (or (not language)
+                                                     (string-null? language))
+                                                 "text"
+                                                 language)
+                                             " " (basename path))
+                                            example))
+                                     '()))))
+                      entries)))))
 
 (define %callouts
   ;; Keyword, class and title of each kind of callout.

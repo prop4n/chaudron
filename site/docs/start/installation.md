@@ -6,6 +6,91 @@ description: Set up a project with chaudron, with Guix, or on Debian and Ubuntu.
 chaudron is a Guile library. A project using it is a directory with a
 program, often `deploy.scm`, and the way to get chaudron for it.
 
+## A project
+
+Choose a file to see what it is for.
+
+```project
+@ deploy.scm | commit
+The program: the resources to deploy, in plain Guile. Run it with `guile deploy.scm`.
+~~~ scheme
+(use-modules (chaudron)
+             (chaudron hetzner))
+
+(load-env-file ".env")
+
+(with-stage "prod"
+  (hetzner-server "web" #:type "cx23" #:location "fsn1"))
+~~~
+@ channels.scm | commit
+With Guix: the channels the project uses, Guix and chaudron, by branch.
+~~~ scheme
+(cons (channel
+       (name 'chaudron)
+       (url "https://github.com/prop4n/chaudron")
+       (branch "main")
+       (introduction
+        (make-channel-introduction
+         "86088179a3b0db539f47047c2dfe12d1d62b353d"
+         (openpgp-fingerprint
+          "4707 DBF9 AD31 C133 DC3D  E410 822B CCA9 C126 8873"))))
+      %default-channels)
+~~~
+@ channels.lock.scm | generated
+With Guix: the exact commits of those channels. Commit it, so that everyone gets the same versions; make it again to update.
+~~~ sh
+$ guix time-machine -C channels.scm -- describe -f channels > channels.lock.scm
+~~~
+@ manifest.scm | optional
+With Guix: the packages of the shell, when the project needs more than Guile and chaudron, such as OpenSSH for Guix System. Then open the shell with `shell -m manifest.scm`.
+~~~ scheme
+(specifications->manifest
+ '("guile" "chaudron" "openssh"))
+~~~
+@ .env | secret
+The tokens, read by `load-env-file`. Never commit it.
+~~~ sh
+HCLOUD_TOKEN=...
+CLOUDFLARE_API_TOKEN=...
+~~~
+@ .gitignore | commit
+Keeps `.env` out of git.
+~~~
+.env
+~~~
+@ .chaudron/ | commit
+What chaudron knows about the resources it made, one file per resource, written by each run. Commit it, or keep it somewhere safe: without it, chaudron would create everything again.
+@ .chaudron/prod/hetzner-server/web.scm | commit
+The state of one resource: the arguments it was converged to, and what Hetzner returned. It is read as data, never evaluated. See [State](/docs/state/).
+~~~ scheme
+((kind . hetzner-server)
+ (name . "web")
+ (seq . 1)
+ (props (name . "web-prod")
+        (type . "cx23")
+        (location . "fsn1")
+        (image . "debian-12")
+        (ssh-keys)
+        (firewalls)
+        (volumes)
+        (networks)
+        (ipv4 . #f)
+        (ipv6 . #f)
+        (user-data . #f)
+        (backups? . #f)
+        (labels)
+        (protected? . #f))
+ (outputs
+  (id . 104729388)
+  (ipv4 . "203.0.113.7")
+  (ipv6 . "2001:db8::/64")
+  (private-ipv4 . #f)
+  (ipv4-id . 98315740)
+  (ipv6-id . 98315741))
+ (depends-on))
+~~~
+```
+
 ## With Guix
 
 Each project says which Guix and which chaudron it uses, in its own
