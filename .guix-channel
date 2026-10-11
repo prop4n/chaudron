@@ -1,0 +1,5 @@
+;; chaudron as a Guix channel: its package is in .guix/modules.
+
+(channel
+ (version 0)
+ (directory ".guix/modules"))
