@@ -11,6 +11,21 @@ was tested.
 > Tested on Hetzner Cloud and Cloudflare: about eight minutes from nothing
 > to the site answering, most of it installing Guix System.
 
+```mermaid
+flowchart LR
+  you((guile deploy.scm))
+  subgraph Hetzner
+    server[server<br/>site]
+    system[Guix System<br/>site-os.scm]
+  end
+  subgraph Cloudflare
+    record[DNS record<br/>www.example.com]
+  end
+  you --> server
+  system -- guix deploy --> server
+  server -- ipv4 --> record
+```
+
 ## What you need
 
 Besides the tokens, the [Guix System](/docs/guix-system/) requirements:

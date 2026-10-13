@@ -20,6 +20,13 @@ declared inside one, with `with-stage`:
 3. When the body returns, the resources of the stage that it did not
    declare this time are deleted, each before the resources it was given.
 
+```mermaid
+flowchart LR
+  load[Load the state<br/>.chaudron/prod/] --> body[Run the body<br/>each call converges one resource]
+  body -- returns --> sweep[Delete what was<br/>not declared]
+  body -- raises an error --> stop[Stop<br/>nothing is deleted]
+```
+
 Deleting a resource is therefore done by removing it from the program. If
 the body raises an error, nothing is deleted: a half-run program cannot
 take down what it did not reach.

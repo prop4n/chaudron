@@ -9,6 +9,7 @@ Each provider reads its token from an environment variable:
 |---|---|
 | Hetzner Cloud | `HCLOUD_TOKEN` |
 | Cloudflare | `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID` if the token reaches several accounts |
+| Oracle Cloud | `OCI_USER`, `OCI_TENANCY`, `OCI_FINGERPRINT`, `OCI_REGION`, `OCI_KEY_FILE`, and `OCI_COMPARTMENT`: see [Oracle Cloud](/docs/oracle/#setup) |
 | Livebox | `LIVEBOX_USERNAME`, `admin` by default, and `LIVEBOX_PASSWORD` |
 
 ## A .env file
@@ -60,4 +61,6 @@ Give tokens no more than they need:
 - a Cloudflare token only needs the permissions of the resources it
   manages: **DNS: Edit** on the zones for DNS records, and on the account
   **Workers Scripts: Edit** for Workers, **Workers KV Storage: Edit** for
-  KV namespaces, **D1: Edit** for D1 databases.
+  KV namespaces, **D1: Edit** for D1 databases;
+- an Oracle key acts as its user: give chaudron a user of its own, in a
+  group allowed to manage only the compartment it uses.

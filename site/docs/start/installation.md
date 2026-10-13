@@ -8,6 +8,13 @@ project says which chaudron it uses, and runs with it. Here is how to
 create one with Guix; [on Debian and Ubuntu](#on-debian-and-ubuntu), only
 the way to get chaudron changes.
 
+```mermaid
+flowchart LR
+  channels[channels.scm] -- describe --> lock[channels.lock.scm]
+  lock -- shell --> shell[A shell<br/>with chaudron]
+  shell --> run[guile deploy.scm]
+```
+
 ## Create a project
 
 ### 1. Make a directory

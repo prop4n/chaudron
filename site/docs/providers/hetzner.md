@@ -59,6 +59,20 @@ See [Credentials](/docs/credentials/) for the other ways to give it.
                          #:network lan))
 ```
 
+```mermaid
+flowchart LR
+  key[SSH key] --> forge[server<br/>forge]
+  web[firewall] --> forge
+  ip[primary IP] --> forge
+  data[volume] --> forge
+  lan[network] --> forge
+  forge --> front[load balancer<br/>front]
+  lan --> front
+```
+
+Each arrow is a resource given to another: chaudron makes them in this
+order, and deletes them the other way round.
+
 ## What every resource shares
 
 - **Names.** At Hetzner, a resource is named after its resource name and

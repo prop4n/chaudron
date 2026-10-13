@@ -10,6 +10,17 @@ Give the server a primary IP, and the address stays.
 > [!NOTE]
 > Tested on Hetzner Cloud.
 
+```mermaid
+flowchart LR
+  subgraph Hetzner
+    ip[primary IP<br/>box]
+    old[server box<br/>replaced]
+    new[server box<br/>new image]
+  end
+  ip -.-> old
+  ip -- keeps its address --> new
+```
+
 ## The program
 
 ```scheme deploy.scm

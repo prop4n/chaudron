@@ -62,6 +62,21 @@ An output given with `output` is a plain value: it carries no dependency.
 3. It saves the state of the resource immediately, so that an interrupted
    run loses nothing.
 
+```mermaid
+flowchart TD
+  known[Known<br/>in the state?]
+  known -- no --> create[Create it]
+  known -- yes --> read[Read the real one]
+  read -- gone --> create
+  read -- there --> differs[Differs from<br/>the program?]
+  differs -- no --> keep[Leave it alone]
+  differs -- can change in place --> update[Update it]
+  differs -- cannot --> replace[Replace it<br/>delete, then create]
+  create --> save[Save its state]
+  update --> save
+  replace --> save
+```
+
 Every change is reported on the error port, with the arguments that caused
 it:
 

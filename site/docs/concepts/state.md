@@ -22,6 +22,20 @@ resource, in `.chaudron/<stage>/<kind>/<name>.scm`.
  (depends-on))
 ```
 
+```mermaid
+flowchart LR
+  program[deploy.scm<br/>what you want]
+  run((a run))
+  state[.chaudron/<br/>what was made]
+  real[The provider<br/>what really exists]
+  program --> run
+  state -- read, then saved --> run
+  run -- read, then changed --> real
+```
+
+Each run compares the three: the program says what is wanted, the state
+says what chaudron made, the provider says what exists now.
+
 - `props` are the arguments the resource was last converged to;
 - `outputs` are what the provider returned, starting with its id;
 - `depends-on` lists the resources it was given, to delete them in order;

@@ -11,6 +11,19 @@ records every night.
 > Tested on Cloudflare. Workers, KV and D1 are free within the limits of
 > the free plan.
 
+```mermaid
+flowchart LR
+  people((visitors))
+  subgraph Cloudflare
+    api[Worker<br/>api]
+    visits[KV namespace<br/>visits]
+    hits[D1 database<br/>hits]
+  end
+  people -- https --> api
+  api -- count --> visits
+  api -- record, clean at 3:00 --> hits
+```
+
 ## What you need
 
 A Cloudflare token with, on the account, **Workers Scripts: Edit**,

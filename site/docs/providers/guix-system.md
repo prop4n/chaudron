@@ -77,6 +77,11 @@ sets the bootloader, the file systems and the network for it.
    SSH as root.
 3. It reboots into it, then deploys your configuration with `guix deploy`.
 
+```mermaid
+flowchart LR
+  rescue[Rescue system] --> install[Erase the disk<br/>install Guix System] --> reboot[Reboot<br/>into it] --> deploy[guix deploy<br/>your file]
+```
+
 If it is interrupted after rebooting, the next run sees that Guix System
 already runs, and only deploys.
 
@@ -105,6 +110,13 @@ On a new server, HTTPS with `certbot-service-type` works from the first
 deployment: nginx starts with a temporary certificate, which certbot then
 replaces. [examples/guix-system.scm](https://github.com/prop4n/chaudron/tree/main/examples)
 does just that.
+
+## On Oracle Cloud
+
+Oracle instances start from images: rather than installing Guix System over
+another system, build a Guix System image, start instances from it, and
+deploy to them with `oracle-guix-system`. See
+[Guix System on Oracle Cloud](/docs/oracle-guix-system/).
 
 ## Volumes
 

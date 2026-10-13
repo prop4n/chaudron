@@ -83,6 +83,20 @@ both, at a domain of yours or on its `workers.dev` address.
                    #:crons '("*/30 * * * *"))
 ```
 
+```mermaid
+flowchart LR
+  people((visitors)) -- www.example.com --> worker[Worker<br/>api]
+  clock((crons)) --> worker
+  subgraph given [Given to the Worker]
+    assets[files<br/>public/]
+    kv[KV namespace]
+    d1[D1 database]
+  end
+  worker --> assets
+  worker --> kv
+  worker --> d1
+```
+
 | Argument | Default | |
 |---|---|---|
 | `#:script` | none | a JavaScript module, the code of the Worker |

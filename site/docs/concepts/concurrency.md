@@ -15,6 +15,16 @@ other, converge them at the same time with `concurrently`:
    (hetzner-volume "data" #:size 10 #:location "fsn1")))
 ```
 
+```mermaid
+flowchart LR
+  start((concurrently)) --> key[SSH key]
+  start --> ip[primary IP]
+  start --> data[volume]
+  key --> values((their values,<br/>in order))
+  ip --> values
+  data --> values
+```
+
 Each expression runs in its own thread, and `concurrently` returns their
 values in order.
 

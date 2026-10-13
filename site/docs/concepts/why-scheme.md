@@ -125,9 +125,27 @@ chaudron, and so of every package on the servers: nginx, the kernel,
 everything. The same program gives the same infrastructure, and the same
 systems, a year later. See [Installation](/docs/installation/).
 
-## What it does not do yet
+## Values from other resources
 
-The system is written to a file that Guix loads: values known when the
-program starts, such as the domain, can be put in it. Values only known
-once a resource exists, such as a server's address, are not passed to the
-system.
+A resource is made when its call returns: from then on, its outputs are
+plain values. The address of a database server can go into the system of
+the web server, like the domain does:
+
+```scheme
+(define db (hetzner-server "db" #:type "cx23" #:location "fsn1"
+                           #:ssh-keys (list key)))
+
+(hetzner-guix-system "web"
+                     #:server web
+                     #:os (write-system! "web" domain (output db 'ipv4))
+                     #:ssh-key key)
+```
+
+The file written then holds the real address; if `db` is replaced and gets
+another one, the file changes, and `web` is deployed again. Two things to
+know:
+
+- the database must be declared first, so it cannot be made in the same
+  `concurrently` as the web server;
+- during a [dry run](/docs/dry-runs/), the address of a server that does not
+  exist yet is unknown, and so is the system written with it.

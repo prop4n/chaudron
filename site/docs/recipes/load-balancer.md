@@ -10,6 +10,21 @@ accept SSH from outside.
 > [!NOTE]
 > Tested on Hetzner Cloud. It costs a few cents an hour while it runs.
 
+```mermaid
+flowchart LR
+  people((Internet))
+  subgraph Hetzner
+    front[load balancer<br/>front, port 80]
+    subgraph lan [network lan]
+      web1[web-1<br/>nginx]
+      web2[web-2<br/>nginx]
+    end
+  end
+  people -- http --> front
+  front --> web1
+  front --> web2
+```
+
 ## The program
 
 ```scheme deploy.scm

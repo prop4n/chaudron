@@ -9,6 +9,25 @@ makes two independent copies, of different sizes.
 > [!NOTE]
 > Tested on Hetzner Cloud.
 
+```mermaid
+flowchart LR
+  subgraph Hetzner
+    subgraph shared [stage shared]
+      key[SSH key<br/>me]
+    end
+    subgraph staging [stage staging]
+      s1[web-1]
+    end
+    subgraph prod [stage prod]
+      p1[web-1]
+      p2[web-2]
+    end
+  end
+  key --> s1
+  key --> p1
+  key --> p2
+```
+
 ## One SSH key per project
 
 Hetzner accepts each SSH key only once per project. Declaring the same key

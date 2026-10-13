@@ -11,6 +11,19 @@ site publishes only the files that changed.
 > Tested on Cloudflare with this very site: deployed in about twelve
 > seconds, served over HTTPS a few seconds later.
 
+```mermaid
+flowchart LR
+  dir[public/<br/>the site's files]
+  subgraph Cloudflare
+    site[Worker<br/>site]
+    domain[domain<br/>www.example.com]
+  end
+  people((visitors))
+  dir -- changed files only --> site
+  site --> domain
+  people -- https --> domain
+```
+
 ## What you need
 
 A Cloudflare token with **Workers Scripts: Edit**, and **DNS: Edit** on the

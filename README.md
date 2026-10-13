@@ -46,8 +46,9 @@ and undoes it.
 | Provider | Resources |
 |---|---|
 | Hetzner Cloud | servers, SSH keys, firewalls, primary IPs, volumes, networks, load balancers, snapshots |
-| Guix System | Guix System installed on Hetzner servers, then deployed with `guix deploy` |
+| Guix System | Guix System installed on Hetzner servers, or started on Oracle Cloud from an image, then deployed with `guix deploy` |
 | Cloudflare | DNS records, Workers, KV namespaces, D1 databases |
+| Oracle Cloud | buckets, files, images imported from them, networks, instances |
 | Livebox | port forwards and DHCP leases of an Orange Livebox (experimental) |
 
 Writing a provider takes a few procedures: create, read, update, delete.
