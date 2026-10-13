@@ -5,61 +5,144 @@
 <h1 align="center">chaudron</h1>
 
 <p align="center">
-  Infrastructure as plain Guile programs.<br>
+  The cloud and the machines, in one program.<br>
   <a href="https://chaudron.dev">chaudron.dev</a> ·
   <a href="https://chaudron.dev/docs/">Documentation</a> ·
   <a href="https://chaudron.dev/docs/load-balancer/">Recipes</a>
 </p>
 
-chaudron is a Guile library to describe infrastructure as a Scheme program,
-and to deploy it by running that program. There is no CLI and no plan to
-apply: each resource call converges the real resource right away, then
+chaudron is a Guile library. Servers at Hetzner or Oracle, records at
+Cloudflare, and the Guix System that runs on the servers are declared in the
+same Scheme program, and deployed by running it. There is no CLI and no plan
+to apply: each resource call converges the real resource right away, then
 returns it, with outputs such as its address for the next calls.
 
+## One program, two providers, one system
+
 ```scheme
-(use-modules (chaudron)
-             (chaudron hetzner)
-             (chaudron cloudflare))
+;; deploy.scm
+(use-modules (chaudron) (chaudron hetzner) (chaudron cloudflare))
 
 (with-stage "prod"
-  (define forge
-    (hetzner-server "forge" #:type "cx23" #:location "fsn1"))
+  (define key
+    (hetzner-ssh-key "me" #:public-key-file "~/.ssh/id_ed25519.pub"))
 
-  (cloudflare-dns-record "git"
-                         #:zone "example.com"
-                         #:content (output forge 'ipv4)))
+  ;; A server at Hetzner,
+  (define server
+    (hetzner-server "web" #:type "cx23" #:location "fsn1"
+                    #:ssh-keys (list key)))
+
+  ;; running the system of web-os.scm,
+  (hetzner-guix-system "web" #:server server
+                       #:os "web-os.scm" #:ssh-key key)
+
+  ;; with its address at Cloudflare.
+  (cloudflare-dns-record "www" #:zone "example.com"
+                         #:content (output server 'ipv4)))
+```
+
+```scheme
+;; web-os.scm: the whole system of the server, in the same language.
+(use-modules (gnu) (gnu machine hetzner))
+(use-service-modules web)
+
+(define %base (make-hetzner-os "cx23"))
+
+(operating-system
+  (inherit %base)
+  (host-name "web")
+  (services
+   (cons (service nginx-service-type
+                  (nginx-configuration
+                   (server-blocks
+                    (list (nginx-server-configuration
+                           (listen '("80" "[::]:80"))
+                           ;; public/, copied with the system.
+                           (root (local-file "public" "site"
+                                             #:recursive? #t)))))))
+         (operating-system-user-services %base))))
+```
+
+```mermaid
+flowchart LR
+  subgraph Hetzner
+    system[Guix System<br/>web-os.scm] -- guix deploy --> server[server<br/>web, cx23]
+  end
+  subgraph Cloudflare
+    record[DNS record<br/>www.example.com]
+  end
+  server -- ipv4 --> record
 ```
 
 ```
 $ guile deploy.scm
-chaudron: create hetzner-server/forge
-chaudron: create cloudflare-dns-record/git
+chaudron: create hetzner-ssh-key/me
+chaudron: create hetzner-server/web
+chaudron: create hetzner-guix-system/web
+chaudron: 203.0.113.7: deploying web-os.scm
+chaudron: create cloudflare-dns-record/www
 ```
 
-Run it again and nothing happens. Change the server type and it is resized
-in place. Remove a resource from the program and it is deleted. Resize the
-server by hand in the Hetzner console, and the next run reports the drift
-and undoes it.
+About eight minutes later, `www.example.com` serves `public/` from a fresh
+Guix System. The address Hetzner gave the server went to Cloudflare as a
+plain value. [The whole recipe](https://chaudron.dev/docs/static-site/)
+was tested on Hetzner and Cloudflare.
+
+## Run it again
+
+- **Nothing changed:** nothing happens.
+- **You changed an argument:** the resource is updated in place, or
+  replaced when it cannot change in place, such as a server's image.
+- **You removed a resource from the program:** it is deleted.
+- **Someone changed it by hand,** in the console: the next run reports the
+  drift and undoes it.
+- **You only want to see:** `#:dry-run? #t` runs the same program and
+  reports what it would do, changing nothing.
+
+```mermaid
+flowchart TD
+  known[Known<br/>in the state?]
+  known -- no --> create[Create it]
+  known -- yes --> read[Read the real one]
+  read -- gone --> create
+  read -- there --> differs[Differs from<br/>the program?]
+  differs -- no --> keep[Leave it alone]
+  differs -- can change in place --> update[Update it]
+  differs -- cannot --> replace[Replace it]
+```
+
+If the program fails halfway, nothing is deleted: a half-run program cannot
+take down what it did not reach.
 
 ## What it manages
 
 | Provider | Resources |
 |---|---|
-| Hetzner Cloud | servers, SSH keys, firewalls, primary IPs, volumes, networks, load balancers, snapshots |
-| Guix System | Guix System installed on Hetzner servers, or started on Oracle Cloud from an image, then deployed with `guix deploy` |
-| Cloudflare | DNS records, Workers, KV namespaces, D1 databases |
-| Oracle Cloud | buckets, files, images imported from them, networks, instances |
-| Livebox | port forwards and DHCP leases of an Orange Livebox (experimental) |
+| [Hetzner Cloud](https://chaudron.dev/docs/hetzner/) | servers, SSH keys, firewalls, primary IPs, volumes, networks, load balancers, snapshots |
+| [Oracle Cloud](https://chaudron.dev/docs/oracle/) | instances, networks, buckets, files, images imported from them |
+| [Cloudflare](https://chaudron.dev/docs/cloudflare/) | DNS records, Workers, KV namespaces, D1 databases |
+| [Guix System](https://chaudron.dev/docs/guix-system/) | installed on Hetzner servers, or started on Oracle Cloud from an image, then deployed with `guix deploy` |
+| [Livebox](https://chaudron.dev/docs/livebox/) | port forwards and DHCP leases of an Orange Livebox, experimental |
 
-Writing a provider takes a few procedures: create, read, update, delete.
-See [Writing a provider](https://chaudron.dev/docs/writing-a-provider/).
+A provider is a module with four procedures, of which only `create` and
+`delete` are required: see
+[Writing a provider](https://chaudron.dev/docs/writing-a-provider/).
 
 ## Getting started
 
 With Guix, a project says which chaudron it uses in its own `channels.scm`,
-next to its program; nothing is installed globally:
+pins the exact versions in a lock, and runs with them. Nothing is installed
+globally.
+
+```mermaid
+flowchart LR
+  channels[channels.scm] -- describe --> lock[channels.lock.scm]
+  lock -- shell --> shell[A shell<br/>with chaudron]
+  shell --> run[guile deploy.scm]
+```
 
 ```scheme
+;; channels.scm
 (cons (channel
        (name 'chaudron)
        (url "https://github.com/prop4n/chaudron")
@@ -72,14 +155,17 @@ next to its program; nothing is installed globally:
       %default-channels)
 ```
 
-Pin the exact versions once, then run the program with them:
-
 ```sh
 guix time-machine -C channels.scm -- describe -f channels > channels.lock.scm
 guix time-machine -C channels.lock.scm -- shell guile chaudron -- guile deploy.scm
 ```
 
-On Debian or Ubuntu:
+The introduction lets Guix check that every commit it fetches is signed by
+chaudron's authors. Commit `channels.lock.scm`: the same program then gives
+the same result, next year too. Run the first command again to move to
+newer versions.
+
+On Debian or Ubuntu, without Guix:
 
 ```sh
 sudo apt install guile-3.0 guile-json guile-gnutls guile-gcrypt
@@ -87,26 +173,51 @@ git clone https://github.com/prop4n/chaudron ~/src/chaudron
 GUILE_LOAD_PATH=~/src/chaudron/lib guile deploy.scm
 ```
 
-Tokens come from the environment, `HCLOUD_TOKEN` or `CLOUDFLARE_API_TOKEN`,
-or from a `.env` file read with `load-env-file`. See
-[Installation](https://chaudron.dev/docs/installation/) for the details.
+Tokens come from the environment, or from a `.env` file read with
+`load-env-file`, kept out of git:
 
-[Your first deployment](https://chaudron.dev/docs/first-deployment/) walks
-through a server at Hetzner, from nothing to `ssh`.
+| Provider | Variables |
+|---|---|
+| Hetzner Cloud | `HCLOUD_TOKEN` |
+| Cloudflare | `CLOUDFLARE_API_TOKEN` |
+| Oracle Cloud | `OCI_USER`, `OCI_TENANCY`, `OCI_FINGERPRINT`, `OCI_REGION`, `OCI_KEY_FILE`, `OCI_COMPARTMENT` |
 
-## How it works
+[Installation](https://chaudron.dev/docs/installation/) explains each step,
+and [Your first deployment](https://chaudron.dev/docs/first-deployment/)
+goes from nothing to `ssh` on a server at Hetzner.
 
-- A stage, like `"prod"`, is one environment. Running its program
-  converges each resource in order, then deletes the resources the program
-  no longer declares. If the program fails, nothing is deleted.
-- What chaudron knows is kept in `.chaudron/`, one small s-expression file
-  per resource, read as data and never evaluated. Commit it, or keep it
-  somewhere safe.
-- `#:dry-run? #t` runs the same program and only reports what would
-  change.
+## Recipes
 
-The [documentation](https://chaudron.dev/docs/) covers stages, state,
-renaming, concurrency, credentials, and every resource.
+Complete programs, with what to expect when you run them.
+
+- **Hetzner:** [web servers behind a load balancer](https://chaudron.dev/docs/load-balancer/),
+  [replace a server, keep its address](https://chaudron.dev/docs/keep-an-address/),
+  [staging and production](https://chaudron.dev/docs/staging-and-production/),
+  [two servers on a private network](https://chaudron.dev/docs/private-network/),
+  [data on a volume](https://chaudron.dev/docs/volume/)
+- **Cloudflare:** [a static site](https://chaudron.dev/docs/cloudflare-static-site/),
+  [an API on Workers, with KV and D1](https://chaudron.dev/docs/workers-api/),
+  [a Worker on a schedule](https://chaudron.dev/docs/scheduled-worker/)
+- **Oracle Cloud:** [a free Arm server](https://chaudron.dev/docs/oracle-arm-server/),
+  [files to download from a bucket](https://chaudron.dev/docs/oracle-downloads/),
+  [an Oracle server, named at Cloudflare](https://chaudron.dev/docs/oracle-cloudflare/)
+- **Guix System:** [a static site on Hetzner](https://chaudron.dev/docs/static-site/),
+  [from an image on Oracle Cloud](https://chaudron.dev/docs/oracle-guix-system/)
+
+## What chaudron keeps
+
+```mermaid
+flowchart LR
+  program[deploy.scm<br/>what you want] --> run((a run))
+  state[.chaudron/<br/>what was made] -- read, then saved --> run
+  run -- read, then changed --> real[The provider<br/>what really exists]
+```
+
+Each run compares three things: the program says what is wanted, the state
+says what chaudron made, the provider says what exists now. The state is
+`.chaudron/`, one small s-expression file per resource, read as data and
+never evaluated. Commit it, or keep it somewhere safe: without it, chaudron
+would create everything again.
 
 ## Repository
 
@@ -125,14 +236,13 @@ guix shell -m manifest.scm
 guile -L . tests/run.scm
 ```
 
-Each file can also be run alone, such as `guile -L . tests/stage.scm`.
-
-The tests run against fake APIs and fake commands: they need no account and
+Each file can also be run alone, such as `guile -L . tests/stage.scm`. The
+tests run against fake APIs and fake commands: they need no account and
 cost nothing.
 
 ## Status
 
-chaudron is young, and its interface may still change.
+chaudron is young: its interface may still change.
 
 ## License
 
