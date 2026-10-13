@@ -2,6 +2,7 @@
 
 (define-module (chaudron hetzner guix-bootstrap)
   #:use-module (chaudron command)
+  #:use-module (chaudron guix-deploy)
   #:use-module (chaudron stage)
   #:use-module (chaudron hetzner api)
   #:use-module (chaudron hetzner common)
@@ -11,15 +12,6 @@
             guix-system-running?
             wait-for-guix-system
             arm?))
-
-(define (ssh-arguments identity address . command)
-  `("-i" ,identity
-    ;; Host keys change when the rescue system and Guix System boot.
-    "-o" "StrictHostKeyChecking=no" "-o" "UserKnownHostsFile=/dev/null"
-    "-o" "LogLevel=ERROR" "-o" "ConnectTimeout=10"
-    ;; Fail rather than ask for a password.
-    "-o" "BatchMode=yes"
-    ,(string-append "root@" address) ,@command))
 
 (define* (wait-for-ssh identity address #:optional (test "true"))
   "Wait until TEST, a shell command, succeeds over SSH on ADDRESS."
