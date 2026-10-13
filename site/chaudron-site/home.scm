@@ -3,25 +3,56 @@
 (define-module (chaudron-site home)
   #:use-module (chaudron-site common)
   #:use-module (ice-9 match)
+  #:use-module (srfi srfi-1)
   #:export (home))
 
 (define (resources . names)
   `(ul (@ (class "resources"))
        ,@(map (lambda (name) `(li (code ,name))) names)))
 
-(define %hero-code "\
-(use-modules (chaudron)
-             (chaudron hetzner)
+(define %deploy-code "\
+(use-modules (chaudron) (chaudron hetzner)
              (chaudron cloudflare))
 
 (with-stage \"prod\"
-  (define forge
-    (hetzner-server \"forge\" #:type \"cx23\"
-                            #:location \"fsn1\"))
+  (define key
+    (hetzner-ssh-key \"me\" #:public-key-file \"~/.ssh/id_ed25519.pub\"))
 
-  (cloudflare-dns-record \"git\"
-                         #:zone \"example.com\"
-                         #:content (output forge 'ipv4)))")
+  ;; A server at Hetzner,
+  (define server
+    (hetzner-server \"web\" #:type \"cx23\" #:location \"fsn1\"
+                    #:ssh-keys (list key)))
+
+  ;; running the system of web-os.scm,
+  (hetzner-guix-system \"web\" #:server server
+                       #:os \"web-os.scm\" #:ssh-key key)
+
+  ;; with its address at Cloudflare.
+  (cloudflare-dns-record \"www\" #:zone \"example.com\"
+                         #:content (output server 'ipv4)))")
+
+(define %os-code "\
+(use-modules (gnu) (gnu machine hetzner))
+(use-service-modules web)
+
+(define %base (make-hetzner-os \"cx23\"))
+
+(operating-system
+  (inherit %base)
+  (host-name \"web\")
+  (services
+   (cons (service nginx-service-type
+                  (nginx-configuration
+                   (server-blocks
+                    (list (nginx-server-configuration
+                           (listen '(\"80\" \"[::]:80\"))
+                           ;; public/, copied with the system.
+                           (root (local-file \"public\" \"site\"
+                                             #:recursive? #t)))))))
+         (operating-system-user-services %base))))")
+
+(define %page-code "\
+<h1>Hello from chaudron!</h1>")
 
 (define %state-file "\
 ((kind . hetzner-volume)
@@ -37,46 +68,6 @@
   (id . 104729301)
   (linux-device . \"/dev/disk/by-id/scsi-0HC_Volume_104729301\"))
  (depends-on))")
-
-(define %guix-code "\
-(hetzner-guix-system \"forge\"
-                     #:server forge
-                     #:os \"forge-os.scm\"
-                     #:ssh-key key)")
-
-(define %website-code "\
-(define (website name key)
-  (let* ((domain (string-append name \".example.com\"))
-         (server (hetzner-server name #:type \"cx23\"
-                                      #:location \"fsn1\"
-                                      #:ssh-keys (list key))))
-    (cloudflare-dns-record name #:zone \"example.com\"
-                           #:content (output server 'ipv4))
-    (hetzner-guix-system name
-                         #:server server
-                         #:os (write-system! name domain)
-                         #:ssh-key key)))
-
-(website \"blog\" key)
-(website \"shop\" key)")
-
-(define %system-code "\
-(define (system-of domain)
-  `(operating-system
-     (inherit %base)
-     (services
-      (cons* (service nginx-service-type
-               (nginx-configuration
-                (server-blocks
-                 (list (nginx-server-configuration
-                        (server-name (list ,domain))
-                        (listen '(\"443 ssl\")))))))
-             (service certbot-service-type
-               (certbot-configuration
-                (certificates
-                 (list (certificate-configuration
-                        (domains (list ,domain)))))))
-             (operating-system-user-services %base)))))")
 
 (define %provider-code "\
 (define thing-provider
@@ -105,6 +96,58 @@
                                             x delay duration))))))
                %bubbles)))
 
+(define %project
+  ;; The files of the example project, as tabs, and their content.
+  `(("deploy.scm" (scheme ,%deploy-code))
+    ("web-os.scm" (scheme ,%os-code))
+    ("public/index.html" (text ,%page-code))))
+
+(define (explorer)
+  "The example project: a tab per file, the chosen file, and what the
+program makes.  Radio buttons choose the file, without JavaScript."
+  `(figure (@ (class "pot explorer"))
+           ,@(map (lambda (n)
+                    `(input (@ (type "radio") (name "file") (class "explorer-input")
+                               (id ,(format #f "file-~a" n))
+                               ,@(if (zero? n) '((checked "checked")) '()))))
+                  (iota (length %project)))
+           (div (@ (class "explorer-tabs") (role "tablist"))
+                ,@(map (match-lambda*
+                         (((path _) n)
+                          `(label (@ (for ,(format #f "file-~a" n))
+                                     (class "explorer-tab"))
+                                  ,path)))
+                       %project (iota (length %project))))
+           (div (@ (class "explorer-panels"))
+                ,@(map (match-lambda
+                         ((_ content)
+                          `(div (@ (class "explorer-panel"))
+                                ,(match content
+                                   (('scheme text) (scheme text))
+                                   (('text text) `(pre (code ,text)))))))
+                       %project))))
+
+(define (diagram)
+  "What deploy.scm makes, at which provider: drawn in HTML, the providers
+as groups, the values passed between resources on the arrows."
+  (define (box title detail)
+    `(div (@ (class "diagram-box"))
+          (span (@ (class "diagram-title")) ,title)
+          (span (@ (class "diagram-detail")) ,detail)))
+  (define (arrow label)
+    `(div (@ (class "diagram-arrow")) (span ,label)))
+  `(div (@ (class "diagram") (role "img")
+           (aria-label "At Hetzner, web-os.scm is deployed to the server with guix deploy; the server's address goes to the DNS record at Cloudflare."))
+        (div (@ (class "diagram-group"))
+             (span (@ (class "diagram-group-name")) "Hetzner")
+             ,(box "Guix System" "web-os.scm")
+             ,(arrow "guix deploy")
+             ,(box "server" "web, cx23"))
+        ,(arrow "ipv4")
+        (div (@ (class "diagram-group"))
+             (span (@ (class "diagram-group-name")) "Cloudflare")
+             ,(box "DNS record" "www.example.com"))))
+
 (define (hero)
   `(section (@ (class "hero"))
             ,(brew)
@@ -112,60 +155,53 @@
                  (div (@ (class "hero-text"))
                       (img (@ (class "hero-logo") (src "/assets/cauldron.png")
                               (alt "A pixel-art cauldron, bubbling green")
-                              (width "210") (height "210")))
-                      (h1 "Infrastructure as plain Guile programs.")
+                              (width "96") (height "96")))
+                      (h1 "The cloud and the machines, in one program.")
                       (p (@ (class "lede"))
-                         "A deployment is a Scheme script. Each resource call "
-                         "converges the real thing, a server, a DNS record, a "
-                         "whole Guix System, and hands back its outputs. "
-                         "No CLI, no plan to apply, no daemon.")
+                         "Servers at Hetzner or Oracle, records at Cloudflare, "
+                         "and the Guix System they run, declared in plain "
+                         "Guile, in the same codebase. Run the program: what "
+                         "is missing is created, what drifted is put back, "
+                         "and the system is deployed.")
                       (div (@ (class "actions"))
-                           (a (@ (class "button") (href "/docs/")) "Read the docs")
-                           (a (@ (class "button button-quiet") (href ,%repository))
-                              "Read the source")))
-                 ,(pot "deploy.scm"
-                       (list (scheme %hero-code)
-                             `(div (@ (class "pot-run"))
-                                   (span (@ (class "prompt")) "$ ")
-                                   "guile deploy.scm")
-                             (report "create hetzner-server/forge"
-                                     "create cloudflare-dns-record/git"))
-                       #:class "hero-pot"))))
+                           (a (@ (class "button") (href "/docs/installation/"))
+                              "Try it")
+                           (a (@ (class "button button-quiet") (href "/docs/"))
+                              "Read the docs"))
+                      (p (@ (class "hero-note"))
+                         "This program, run once: about eight minutes later, "
+                         (code "www.example.com") " answers from a fresh Guix "
+                         "System. "
+                         (a (@ (href "/docs/static-site/")) "The whole recipe")))
+                 (div (@ (class "hero-example"))
+                      ,(explorer)
+                      ,(diagram)))))
 
-(define (scheme-section)
-  `(section (@ (id "scheme") (class "band"))
+(define (points-section)
+  `(section (@ (id "why") (class "band"))
             (div (@ (class "wrap"))
-                 (h2 "One language, from the cloud to the system")
-                 (p (@ (class "intro"))
-                    "Infrastructure usually takes two tools: one for the "
-                    "servers and the DNS, another, with its own language, to "
-                    "configure the machines. Here both are Scheme, in the "
-                    "same program.")
+                 (h2 "One codebase for everything you deploy")
                  (ul (@ (class "points"))
-                     (li (h3 "The machines are declared too")
-                         (p "With Guix System, a server is not configured "
-                            "step by step: it is described whole. Deploying "
-                            "the same description gives the same system, and "
-                            "each deployment can be rolled back."))
+                     (li (h3 "Providers talk to each other")
+                         (p "A server's address goes to a DNS record, a "
+                            "bucket's file becomes an image: outputs are "
+                            "plain values, passed like any other."))
+                     (li (h3 "The machines are code too")
+                         (p "A Guix System is one declaration, deployed by "
+                            (code "guix deploy") ". The same file gives the "
+                            "same system, and each deployment can be rolled "
+                            "back."))
                      (li (h3 "Procedures, not templates")
-                         (p "A website, its server, its DNS record and its "
-                            "system are one procedure. Two websites are two "
-                            "calls, with loops and modules for the rest."))
-                     (li (h3 "Code is data")
-                         (p "The system of a machine is a Scheme expression: "
-                            "the program builds it, with its values in place, "
-                            "rather than filling text templates."))
+                         (p "A website, its server, its record and its system "
+                            "fit in one procedure: two websites are two "
+                            "calls. Loops and modules do the rest."))
                      (li (h3 "Everything pinned")
-                         (p "The versions of Guix, of chaudron and of every "
-                            "package on the servers are fixed by the "
-                            "project's lock: the same code, the same result.")))
-                 (div (@ (class "split scheme-code"))
-                      ,(pot "deploy.scm" (list (scheme %website-code)))
-                      ,(pot "the system, built by the program"
-                            (list (scheme %system-code))))
+                         (p "The lock fixes Guix, chaudron and every package "
+                            "on the servers: the same code gives the same "
+                            "infrastructure, a year later.")))
                  (p (@ (class "more"))
                     (a (@ (href "/docs/why-scheme/"))
-                       "Why Scheme, with the whole example")))))
+                       "Why Scheme, with a complete example")))))
 
 (define (run-section)
   `(section (@ (id "run") (class "band"))
@@ -222,23 +258,6 @@
                                  (list (report "hetzner-server/forge has drifted: type is \"cx33\", expected \"cx23\""
                                                "update hetzner-server/forge (type)"))))))))
 
-(define (guix-section)
-  `(section (@ (id "guix") (class "band"))
-            (div (@ (class "wrap split"))
-                 (div
-                  (h2 "From a bare server to " (code "guix deploy"))
-                  (p "Give " (code "hetzner-guix-system") " a server and an "
-                     (code "operating-system") " file. The first run installs "
-                     "Guix System on it; later runs deploy again whenever the "
-                     "file, or the Guix you run, changes.")
-                  (ol (@ (class "sequence"))
-                      (li "Boots the server into Hetzner's rescue system.")
-                      (li (strong "Erases its disk") " and installs a minimal "
-                          "Guix System.")
-                      (li "Deploys your configuration with "
-                          (code "guix deploy") ".")))
-                 ,(pot "deploy.scm" (list (scheme %guix-code))))))
-
 (define (providers-section)
   `(section (@ (id "providers") (class "band"))
             (div (@ (class "wrap"))
@@ -250,8 +269,13 @@
                                           "hetzner-volume" "hetzner-network"
                                           "hetzner-load-balancer"
                                           "hetzner-snapshot")))
+                     (div (dt "Oracle Cloud")
+                          (dd ,(resources "oracle-instance" "oracle-network"
+                                          "oracle-bucket" "oracle-object"
+                                          "oracle-image")))
                      (div (dt "Guix System")
-                          (dd ,(resources "hetzner-guix-system")))
+                          (dd ,(resources "hetzner-guix-system"
+                                          "oracle-guix-system")))
                      (div (dt "Cloudflare")
                           (dd ,(resources "cloudflare-dns-record"
                                           "cloudflare-worker"
@@ -306,10 +330,9 @@
                                 #:action '("Docs" . "/docs/"))
                         `(main
                           ,(hero)
-                          ,(scheme-section)
+                          ,(points-section)
                           ,(run-section)
                           ,(open-section)
-                          ,(guix-section)
                           ,(providers-section)
                           ,(start-section))
                         (footer)))))
