@@ -1,3 +1,4 @@
 .chaudron/
 .env
 site/public/
+oci_api_key.pem
