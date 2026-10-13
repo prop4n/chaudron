@@ -63,17 +63,6 @@ returns it, with outputs such as its address for the next calls.
          (operating-system-user-services %base))))
 ```
 
-```mermaid
-flowchart LR
-  subgraph Hetzner
-    system[Guix System<br/>web-os.scm] -- guix deploy --> server[server<br/>web, cx23]
-  end
-  subgraph Cloudflare
-    record[DNS record<br/>www.example.com]
-  end
-  server -- ipv4 --> record
-```
-
 ```
 $ guile deploy.scm
 chaudron: create hetzner-ssh-key/me
@@ -99,18 +88,6 @@ was tested on Hetzner and Cloudflare.
 - **You only want to see:** `#:dry-run? #t` runs the same program and
   reports what it would do, changing nothing.
 
-```mermaid
-flowchart TD
-  known[Known<br/>in the state?]
-  known -- no --> create[Create it]
-  known -- yes --> read[Read the real one]
-  read -- gone --> create
-  read -- there --> differs[Differs from<br/>the program?]
-  differs -- no --> keep[Leave it alone]
-  differs -- can change in place --> update[Update it]
-  differs -- cannot --> replace[Replace it]
-```
-
 If the program fails halfway, nothing is deleted: a half-run program cannot
 take down what it did not reach.
 
@@ -133,13 +110,6 @@ A provider is a module with four procedures, of which only `create` and
 With Guix, a project says which chaudron it uses in its own `channels.scm`,
 pins the exact versions in a lock, and runs with them. Nothing is installed
 globally.
-
-```mermaid
-flowchart LR
-  channels[channels.scm] -- describe --> lock[channels.lock.scm]
-  lock -- shell --> shell[A shell<br/>with chaudron]
-  shell --> run[guile deploy.scm]
-```
 
 ```scheme
 ;; channels.scm
@@ -205,13 +175,6 @@ Complete programs, with what to expect when you run them.
   [from an image on Oracle Cloud](https://chaudron.dev/docs/oracle-guix-system/)
 
 ## What chaudron keeps
-
-```mermaid
-flowchart LR
-  program[deploy.scm<br/>what you want] --> run((a run))
-  state[.chaudron/<br/>what was made] -- read, then saved --> run
-  run -- read, then changed --> real[The provider<br/>what really exists]
-```
 
 Each run compares three things: the program says what is wanted, the state
 says what chaudron made, the provider says what exists now. The state is
