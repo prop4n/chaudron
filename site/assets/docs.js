@@ -1,5 +1,5 @@
 // The menu on small screens, the table of contents following the reading,
-// and the search (Ctrl K or /).
+// the search (Ctrl K or /), and the diagrams.
 (function () {
   // Menu
   var menuButton = document.querySelector(".menu-button");
@@ -193,5 +193,164 @@
   // A click outside the box closes it.
   dialog.addEventListener("click", function (e) {
     if (e.target === dialog) dialog.close();
+  });
+})();
+
+// Diagrams: ```mermaid blocks become <pre class="mermaid">
+// (chaudron-site/markdown.scm).  Mermaid, loaded only where there are some,
+// only lays them out: it places the boxes and draws the arrows.  The boxes,
+// groups and labels are then made again in HTML, with the pixel frames of
+// the site (see "Diagrams" in docs.css); only the arrows stay in SVG.
+(function () {
+  var diagrams = Array.prototype.slice.call(document.querySelectorAll("pre.mermaid"));
+  if (!diagrams.length) return;
+
+  document.documentElement.classList.add("js");
+  diagrams.forEach(function (d) { d.dataset.source = d.textContent; });
+
+  function loadMermaid() {
+    return new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      script.src = "/assets/vendor/mermaid-11.17.2.min.js";
+      script.onload = function () { resolve(window.mermaid); };
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  function element(tag, className, parent) {
+    var el = document.createElement(tag);
+    el.className = className;
+    parent.appendChild(el);
+    return el;
+  }
+
+  // The box of an element of the SVG, in pixels, relative to the SVG.
+  function position(el, origin) {
+    var r = el.getBoundingClientRect();
+    return { x: r.left - origin.left, y: r.top - origin.top,
+             width: r.width, height: r.height };
+  }
+
+  function place(el, p) {
+    el.style.left = p.x + "px";
+    el.style.top = p.y + "px";
+    el.style.width = p.width + "px";
+    el.style.height = p.height + "px";
+  }
+
+  // The lines of a label, as written, <br/> included.  Mermaid's texts are
+  // HTML inside the SVG: read the HTML, which keeps the line breaks.
+  function lines(label) {
+    if (!label) return [];
+    var html = label instanceof HTMLElement ? label
+             : label.querySelector(".nodeLabel, .edgeLabel, div, span, p");
+    var text = (html && html.innerText) || label.textContent || "";
+    return text.split("\n").map(function (l) { return l.trim(); })
+      .filter(function (l) { return l; });
+  }
+
+  function dress(pre) {
+    var svg = pre.querySelector("svg");
+    if (!svg) return;
+    // A fixed size: the HTML elements are placed to the pixel.
+    var view = svg.viewBox.baseVal;
+    svg.style.maxWidth = "none";
+    svg.setAttribute("width", view.width);
+    svg.setAttribute("height", view.height);
+
+    var drawing = document.createElement("div");
+    drawing.className = "schema-drawing";
+    drawing.style.width = view.width + "px";
+    drawing.style.height = view.height + "px";
+    pre.insertBefore(drawing, svg);
+    drawing.appendChild(svg);
+    var origin = svg.getBoundingClientRect();
+
+    // Groups first, a provider each: they are under the boxes.
+    svg.querySelectorAll("g.cluster").forEach(function (g) {
+      var rect = g.querySelector("rect");
+      if (!rect) return;
+      var group = element("div", "schema-group", drawing);
+      place(group, position(rect, origin));
+      element("span", "schema-group-name", group).textContent =
+        lines(g.querySelector(".cluster-label")).join(" ");
+      g.style.visibility = "hidden";
+    });
+
+    // Boxes: the first line as a title, the others below.  Mermaid's
+    // circles, ((…)), are what is outside the infrastructure: you, the
+    // Internet.
+    svg.querySelectorAll("g.node").forEach(function (g) {
+      var shape = g.querySelector("rect, circle, polygon, path");
+      if (!shape) return;
+      var outside = !!g.querySelector("circle");
+      var box = element("div", "schema-box" + (outside ? " schema-box-outside" : ""),
+                        drawing);
+      place(box, position(shape, origin));
+      lines(g.querySelector(".nodeLabel") || g).forEach(function (text, i) {
+        element("span", i === 0 ? "schema-title" : "schema-detail", box)
+          .textContent = text;
+      });
+      g.style.visibility = "hidden";
+    });
+
+    // The labels of the arrows.
+    svg.querySelectorAll("g.edgeLabel").forEach(function (g) {
+      var text = lines(g).join(" ");
+      if (!text) return;
+      var p = position(g, origin);
+      var label = element("span", "schema-label", drawing);
+      label.textContent = text;
+      label.style.left = (p.x + p.width / 2) + "px";
+      label.style.top = (p.y + p.height / 2) + "px";
+      g.style.visibility = "hidden";
+    });
+  }
+
+  // A diagram wider than the column is scaled down to fit.
+  function fit(pre) {
+    var drawing = pre.querySelector(".schema-drawing");
+    if (!drawing) return;
+    var width = parseFloat(drawing.style.width);
+    var height = parseFloat(drawing.style.height);
+    var scale = Math.min(1, pre.parentNode.clientWidth / width);
+    drawing.style.transform = scale < 1 ? "scale(" + scale + ")" : "";
+    drawing.style.marginLeft = scale < 1 ? "0" : "";
+    pre.style.height = (height * scale) + "px";
+  }
+
+  window.addEventListener("resize", function () { diagrams.forEach(fit); });
+
+  loadMermaid().then(function (mermaid) {
+    var font = '"Atkinson", system-ui, sans-serif';
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      fontFamily: font,
+      // Wide margins: the pixel frames take room.
+      flowchart: { curve: "step", padding: 26, nodeSpacing: 46,
+                   rankSpacing: 64, diagramPadding: 12 },
+      themeVariables: { fontFamily: font, fontSize: "16px" },
+      // Measured in bold, like the titles of the boxes: the rest is
+      // smaller, so it fits.
+      themeCSS: ".nodeLabel, .nodeLabel p { font-weight: 700; }"
+    });
+    // The font first: Mermaid measures the texts to place the boxes.
+    var fonts = document.fonts
+        ? Promise.all([document.fonts.load('16px "Atkinson"'),
+                       document.fonts.load('700 16px "Atkinson"')])
+        : Promise.resolve();
+    return fonts.then(function () {
+      return mermaid.run({ nodes: diagrams });
+    }).then(function () {
+      diagrams.forEach(dress);
+      diagrams.forEach(fit);
+    });
+  }).catch(function (error) {
+    // Leave the text of the diagram readable.
+    diagrams.forEach(function (d) { d.classList.add("schema-error"); });
+    if (window.console) console.error(error);
   });
 })();

@@ -508,3 +508,118 @@
   body.menu-open .docs-sidebar { display: block; }
   .pager { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Diagrams: a ```mermaid block.  Mermaid places the boxes and draws the
+   arrows; assets/docs.js makes the boxes, groups and labels again in HTML,
+   with the pixel frames of the site. */
+
+.schema {
+  margin: 2rem 0;
+  overflow-x: auto;
+  padding-bottom: calc(2 * var(--px));
+}
+
+.schema pre.mermaid {
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+  overflow: visible;
+}
+
+/* While Mermaid places everything, its text is not shown. */
+.js .schema pre.mermaid:not([data-processed]):not(.schema-error) {
+  visibility: hidden;
+  min-height: 8rem;
+}
+
+.schema-drawing {
+  position: relative;
+  margin: 0 auto;
+  transform-origin: 0 0;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.schema-drawing svg { position: absolute; inset: 0; overflow: visible; }
+
+/* The arrows: one-pixel lines, at right angles. */
+.schema-drawing svg .flowchart-link,
+.schema-drawing svg .edgePaths path {
+  stroke: var(--brew-deep) !important;
+  stroke-width: var(--px) !important;
+  shape-rendering: crispEdges;
+}
+
+.schema-drawing svg marker path {
+  fill: var(--brew-deep) !important;
+  stroke: none !important;
+}
+
+.schema-group, .schema-box, .schema-label { position: absolute; }
+
+/* A group is a provider. */
+.schema-group { border: var(--px) dashed var(--muted); }
+
+.schema-group-name {
+  position: absolute;
+  top: calc(-0.75em - var(--px));
+  left: 0.75rem;
+  padding: 0 0.4rem;
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.schema-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  border: calc(5 * var(--px)) solid transparent;
+  border-image: url("/assets/frames/note.svg") 5 fill / calc(5 * var(--px));
+  filter: drop-shadow(calc(2 * var(--px)) calc(2 * var(--px)) 0 var(--drop));
+  color: var(--ink);
+}
+
+.schema-box-outside {
+  border-image-source: url("/assets/frames/iron.svg");
+  color: var(--iron-ink);
+}
+
+.schema-title { font-weight: 700; white-space: nowrap; }
+
+.schema-detail {
+  font-family: var(--mono);
+  font-size: 0.75em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.schema-box-outside .schema-detail { color: var(--iron-muted); }
+
+.schema-label {
+  transform: translate(-50%, -50%);
+  padding: 0 0.35rem;
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--link);
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  .schema-box { border-image-source: url("/assets/frames/note-dark.svg"); }
+  .schema-box-outside { border-image-source: url("/assets/frames/brew-dark.svg"); color: var(--iron); }
+  .schema-box-outside .schema-detail { color: var(--iron); }
+}

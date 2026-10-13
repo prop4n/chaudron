@@ -56,19 +56,25 @@
 (define (code-block info text)
   "A block of code, in a frame titled with the file name given after its
 language (```scheme deploy.scm), or else with the language.  A ```project
-block is the tree of a project instead."
+block is the tree of a project instead, and a ```mermaid block a diagram,
+drawn by assets/docs.js."
   (let* ((text (string-trim-right text #\newline))
          (words (string-tokenize info))
          (language (if (null? words) "" (car words)))
          (title (if (> (length words) 1) (cadr words) language)))
-    (if (string=? language "project")
-        (project text)
-        (pot title
-             (list (match language
-                     ("scheme" (scheme text))
-                     ("output" (output-lines text))
-                     ((or "sh" "shell") (shell-lines text))
-                     (_ `(pre (code ,text)))))))))
+    (cond
+     ((string=? language "project")
+      (project text))
+     ((string=? language "mermaid")
+      ;; Without JavaScript, the text of the diagram is shown.
+      `(figure (@ (class "schema")) (pre (@ (class "mermaid")) ,text)))
+     (else
+      (pot title
+           (list (match language
+                   ("scheme" (scheme text))
+                   ("output" (output-lines text))
+                   ((or "sh" "shell") (shell-lines text))
+                   (_ `(pre (code ,text))))))))))
 
 ;; The tree of a project: one entry per file, each starting with a line
 ;;
