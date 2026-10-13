@@ -1,5 +1,3 @@
-;;; Builds the site and deploys it to chaudron.dev: see README.md.
-
 (use-modules (chaudron)
              (chaudron cloudflare)
              (ice-9 match))
@@ -8,9 +6,9 @@
 
 (define (deploy)
   (unless (zero? (system* "haunt" "build"))
-    (error "could not build the site"))
+    (error "impossible de construire le site"))
   (with-stage "prod"
-    (let ((site (cloudflare-worker "site"
+    (let ((site (cloudflare-worker "site-chaudron"
                                    #:assets "public"
                                    #:domain "chaudron.dev")))
       (format #t "~a~%" (output site 'url)))))
