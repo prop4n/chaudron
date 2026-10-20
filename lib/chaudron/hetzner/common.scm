@@ -29,7 +29,10 @@ response."
   (let ((response (hetzner-request
                    'POST (resource-path collection id "/actions/" action)
                    body)))
-    (wait-for-actions response)
+    ;; Storage Boxes keep their actions apart.
+    (wait-for-actions response (if (string=? collection "storage_boxes")
+                                   "/storage_boxes"
+                                   ""))
     response))
 
 (define (list-prop props key)

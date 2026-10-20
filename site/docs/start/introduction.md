@@ -41,7 +41,7 @@ conditions on the environment.
 
 | Provider | Resources |
 |---|---|
-| [Hetzner Cloud](/docs/hetzner/) | servers, SSH keys, firewalls, primary IPs, volumes, networks, load balancers, snapshots |
+| [Hetzner Cloud](/docs/hetzner/) | servers, SSH keys, firewalls, primary IPs, volumes, Storage Boxes, networks, load balancers, snapshots |
 | [Guix System](/docs/guix-system/) | Guix System installed and deployed on Hetzner servers, or [on Oracle Cloud](/docs/oracle/#oracle-guix-system) |
 | [Cloudflare](/docs/cloudflare/) | DNS records, Workers, KV namespaces, D1 databases |
 | [Oracle Cloud](/docs/oracle/) | buckets, files, images imported from them, networks, instances |

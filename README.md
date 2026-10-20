@@ -95,7 +95,7 @@ take down what it did not reach.
 
 | Provider | Resources |
 |---|---|
-| [Hetzner Cloud](https://chaudron.dev/docs/hetzner/) | servers, SSH keys, firewalls, primary IPs, volumes, networks, load balancers, snapshots |
+| [Hetzner Cloud](https://chaudron.dev/docs/hetzner/) | servers, SSH keys, firewalls, primary IPs, volumes, Storage Boxes, networks, load balancers, snapshots |
 | [Oracle Cloud](https://chaudron.dev/docs/oracle/) | instances, networks, buckets, files, images imported from them |
 | [Cloudflare](https://chaudron.dev/docs/cloudflare/) | DNS records, Workers, KV namespaces, D1 databases |
 | [Guix System](https://chaudron.dev/docs/guix-system/) | installed on Hetzner servers, or started on Oracle Cloud from an image, then deployed with `guix deploy` |

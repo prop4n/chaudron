@@ -21,6 +21,8 @@
             hetzner-error-code))
 
 (define %endpoint "https://api.hetzner.cloud/v1")
+;; Storage Boxes are in the Hetzner API, which takes the same tokens.
+(define %storage-box-endpoint "https://api.hetzner.com/v1")
 (define %action-timeout 600)            ;seconds
 
 ;; API token; when unset, $HCLOUD_TOKEN is used.
@@ -59,12 +61,18 @@
       (getenv "HCLOUD_TOKEN")
       (error "no Hetzner token: set HCLOUD_TOKEN or use with-hetzner")))
 
+(define (endpoint path)
+  (if (string-prefix? "/storage_boxes" path)
+      %storage-box-endpoint
+      %endpoint))
+
 (define* (hetzner-request method path #:optional body)
-  "Call the Hetzner Cloud API and return the decoded JSON response.
-Rate limits and server errors are retried with exponential backoff."
+  "Call the Hetzner Cloud API, or the Hetzner API for Storage Boxes, and
+return the decoded JSON response.  Rate limits and server errors are retried
+with exponential backoff."
   (receive (status json)
       (json-request (hetzner-transport) (hetzner-sleep)
-                    method (string-append %endpoint path)
+                    method (string-append (endpoint path) path)
                     (bearer-headers (token)) body)
     (if (< status 300)
         (or json '())
@@ -84,9 +92,10 @@ Rate limits and server errors are retried with exponential backoff."
   "DELETE PATH and return the response, or #f if it was already gone."
   (unless-gone (lambda () (hetzner-request 'DELETE path))))
 
-(define (wait-for-action action)
+(define* (wait-for-action action #:optional (collection ""))
   "Poll ACTION until it completes; raise an error if it fails or takes more
-than ten minutes.  Do nothing if ACTION is #f or null."
+than ten minutes.  Do nothing if ACTION is #f or null.  COLLECTION, such as
+\"/storage_boxes\", is where actions are kept when not at the top."
   (let loop ((action action) (seconds 0))
     (match (json-ref action "status")
       (#f action)
@@ -97,14 +106,15 @@ than ten minutes.  Do nothing if ACTION is #f or null."
          (error "Hetzner action timed out" (json-ref action "command")))
        ((hetzner-sleep) 1)
        (loop (json-ref (hetzner-request
-                        'GET (format #f "/actions/~a" (json-ref action "id")))
+                        'GET (format #f "~a/actions/~a" collection
+                                     (json-ref action "id")))
                        "action")
              (1+ seconds))))))
 
-(define (wait-for-actions response)
+(define* (wait-for-actions response #:optional (collection ""))
   "Wait for every action of RESPONSE, whether it has an \"action\", a list
 of \"actions\" or \"next_actions\"."
-  (wait-for-action (json-ref response "action"))
-  (for-each wait-for-action
+  (wait-for-action (json-ref response "action") collection)
+  (for-each (lambda (action) (wait-for-action action collection))
             (append (json-list response "actions")
                     (json-list response "next_actions"))))

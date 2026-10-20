@@ -24,7 +24,8 @@
             quietly))
 
 (define %endpoints
-  '("https://api.hetzner.cloud/v1" "https://api.cloudflare.com/client/v4"
+  '("https://api.hetzner.cloud/v1" "https://api.hetzner.com/v1"
+    "https://api.cloudflare.com/client/v4"
     "https://objectstorage.xx-test-1.oraclecloud.com"
     "https://iaas.xx-test-1.oraclecloud.com/20160918"
     "https://identity.xx-test-1.oraclecloud.com/20160918"))

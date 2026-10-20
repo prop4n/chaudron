@@ -1,6 +1,6 @@
 title: Hetzner Cloud
 order: 1
-description: Servers, SSH keys, firewalls, IPs, volumes, networks, load balancers and snapshots.
+description: Servers, SSH keys, firewalls, IPs, volumes, Storage Boxes, networks, load balancers and snapshots.
 ---
 
 ```scheme
@@ -19,7 +19,9 @@ permissions. chaudron reads it from `HCLOUD_TOKEN`, or from
   (with-stage "prod" ...))
 ```
 
-See [Credentials](/docs/credentials/) for the other ways to give it.
+See [Credentials](/docs/credentials/) for the other ways to give it. The
+same token manages the project's [Storage Boxes](#hetzner-storage-box),
+which are not in the Hetzner Cloud API but in the Hetzner API.
 
 ## A complete example
 
@@ -175,6 +177,32 @@ Block storage, mounted under `/mnt` on the server it is given to.
 
 Outputs: `id`, `linux-device`. Changing its location or format replaces
 it.
+
+## hetzner-storage-box
+
+Storage reachable over SSH, Samba or WebDAV, that servers can mount, such
+as 1 TB for `"bx11"`. See [A Storage Box on Guix System](/docs/storage-box/).
+
+| Argument | Default | |
+|---|---|---|
+| `#:type` | required | such as `"bx11"`, `"bx21"` |
+| `#:location` | required | such as `"fsn1"` or `"hel1"` |
+| `#:password` | required | its password, of which the state keeps only a digest |
+| `#:ssh-keys` | `'()` | public keys, as strings, given to it when it is created |
+| `#:ssh?`, `#:samba?`, `#:webdav?` | `#f` | the ways in |
+| `#:zfs?` | `#f` | show its snapshots in `.zfs` |
+| `#:external?` | `#f` | reachable from outside Hetzner, not only from its servers |
+| `#:labels`, `#:protected?`, `#:name` | | see above |
+
+Outputs: `id`, `username`, `server`, such as `u123456` and
+`u123456.your-storagebox.de`. Changing its location **replaces** it, losing
+its data. Everything else changes in place:
+
+- changing the password resets it; it must follow Hetzner's policy: 12
+  characters or more, with an upper case letter, a lower case letter, a
+  digit and a special character;
+- `#:ssh-keys` are only given to a new Storage Box: add others to its
+  `.ssh/authorized_keys`.
 
 ## hetzner-network
 

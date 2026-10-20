@@ -10,12 +10,14 @@
   #:use-module (chaudron hetzner server)
   #:use-module (chaudron hetzner snapshot)
   #:use-module (chaudron hetzner ssh-key)
+  #:use-module (chaudron hetzner storage-box)
   #:use-module (chaudron hetzner volume)
   #:re-export (hetzner-ssh-key
                hetzner-firewall
                allow-in
                hetzner-server
                hetzner-volume
+               hetzner-storage-box
                hetzner-primary-ip
                hetzner-network
                hetzner-load-balancer
