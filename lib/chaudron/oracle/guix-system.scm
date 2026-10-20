@@ -48,13 +48,15 @@ was started or restarted."
 
 (define* (oracle-guix-system resource-name
                              #:key instance os (identity "~/.ssh/id_ed25519")
-                             build-locally?)
+                             build-locally? (secrets '()))
   "Deploy OS, a file whose last expression is an operating system, to
 INSTANCE, an `oracle-instance' started from a Guix System image that lets
 IDENTITY, a private SSH key, in as root, and trusts this machine's Guix
 signing key.  OS is deployed whenever it, or the Guix in use, changes.
 The instance builds it, unless BUILD-LOCALLY?: sending a whole system from
-here takes long over a slow connection."
+here takes long over a slow connection.  SECRETS, an alist of files on the
+instance and the local files to copy there, outside of the store, are copied
+before each deployment."
   (unless (and instance os)
     (error "oracle-guix-system: #:instance and #:os are required"
            resource-name))
@@ -70,4 +72,5 @@ here takes long over a slow connection."
                      (identity . ,identity)
                      (build-locally? . ,(and build-locally? #t))
                      (os . ,os)
-                     (configuration . ,(configuration-hash os)))))
+                     (configuration . ,(configuration-hash os))
+                     ,@(secrets-prop secrets))))

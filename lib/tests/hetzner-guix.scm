@@ -176,6 +176,62 @@
                                                    "/.ssh/id_ed25519"))
                    #t))))))
 
+;;; Secrets.
+
+(define secret-file
+  (let* ((port (mkstemp "/tmp/chaudron-secret-XXXXXX"))
+         (file (port-filename port)))
+    (display "KEY 1" port)
+    (close-port port)
+    file))
+
+(define (with-secret)
+  (quietly
+   (lambda ()
+     (with-stage "secrets"
+       (hetzner-guix-system "forge" #:server (forge) #:os os-file
+                            #:ssh-key 7 #:identity "/keys/id"
+                            #:secrets `(("/root/.ssh/box" . ,secret-file)))))))
+
+(define (copies? command)
+  (and (equal? "ssh" (car command))
+       (string-prefix? "umask 077 && mkdir -p '/root/.ssh' && cat > '/root/.ssh/box.new'"
+                       (cadr command))))
+
+(parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
+  (test-assert "copies secrets before deploying"
+    (with-commands (describe (hashed "h1") ok keyscan ok ok) '()
+      (with-secret)
+      (and (equal? '(("ssh" "test -e /run/current-system")
+                     ("ssh-keyscan" "-t"))
+                   (list-head (cddr commands) 2))
+           (copies? (list-ref commands 4))
+           (equal? '("guix" "deploy") (list-ref commands 5))
+           (equal? "KEY 1" script))))
+
+  (test-assert "keeps a digest of secrets, not their contents"
+    (let ((state (call-with-input-file
+                     (string-append (state-directory)
+                                    "/secrets/hetzner-guix-system/forge.scm")
+                   get-string-all)))
+      (and (string-contains state secret-file)
+           (not (string-contains state "KEY 1")))))
+
+  (test-equal "does nothing when no secret changed"
+    '(("guix" "describe") ("guix" "hash"))
+    (with-commands (describe (hashed "h1")) '()
+      (with-secret)
+      commands))
+
+  (test-assert "copies them and deploys again when one changed"
+    (begin
+      (call-with-output-file secret-file (cut display "KEY 2" <>))
+      (with-commands (describe (hashed "h1") ok ok ok) '()
+        (with-secret)
+        (and (copies? (list-ref commands 3))
+             (equal? '("guix" "deploy") (list-ref commands 4))
+             (equal? "KEY 2" script))))))
+
 (define failures (test-runner-fail-count (test-runner-current)))
 (test-end "hetzner-guix")
 (exit (zero? failures))

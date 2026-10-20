@@ -64,8 +64,10 @@ sets the bootloader, the file systems and the network for it.
 | `#:os` | required | the configuration file |
 | `#:ssh-key` | required | the `hetzner-ssh-key` of `#:identity` |
 | `#:identity` | `"~/.ssh/id_ed25519"` | the private key to reach the server |
+| `#:secrets` | `'()` | files to copy to the server, outside of the store: see [Secrets](#secrets) |
 
-`#:os` and `#:identity` are relative to the directory chaudron runs from.
+`#:os`, `#:identity` and the files of `#:secrets` are relative to the
+directory chaudron runs from.
 
 ## The first run
 
@@ -110,6 +112,27 @@ On a new server, HTTPS with `certbot-service-type` works from the first
 deployment: nginx starts with a temporary certificate, which certbot then
 replaces. [examples/guix-system.scm](https://github.com/prop4n/chaudron/tree/main/examples)
 does just that.
+
+## Secrets
+
+Everything `guix deploy` sends goes to the store, which every user of the
+server can read: no keys or passwords in the configuration. `#:secrets`
+copies files to the server instead, readable by root only, before each
+deployment, so that the services of the system find them as soon as they
+start:
+
+```scheme
+(hetzner-guix-system "forge"
+                     #:server forge
+                     #:os "forge-os.scm"
+                     #:ssh-key key
+                     #:secrets '(("/root/.ssh/backup" . "secrets/backup")))
+```
+
+Each pair is a file on the server and the file of this machine it comes
+from. The state keeps only a digest of their contents: changing one copies
+it and deploys again. Like the configuration, services are not restarted
+for it. Removing a secret from the list does not delete it from the server.
 
 ## On Oracle Cloud
 

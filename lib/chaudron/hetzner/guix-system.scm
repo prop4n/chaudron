@@ -38,14 +38,17 @@
 
 (define* (hetzner-guix-system resource-name
                               #:key server os ssh-key
-                              (identity "~/.ssh/id_ed25519"))
+                              (identity "~/.ssh/id_ed25519")
+                              (secrets '()))
   "Run Guix System on SERVER, a `hetzner-server', configured by OS, a file
 whose last expression is an operating system, typically based on
 `make-hetzner-os' from (gnu machine hetzner).  SSH-KEY is the
 `hetzner-ssh-key' of IDENTITY, the private key used to reach the server.
 
 The first time, the server's disk is erased to install Guix System.  Then
-OS is deployed with 'guix deploy' whenever it, or the Guix in use, changes."
+OS is deployed with 'guix deploy' whenever it, or the Guix in use, changes.
+SECRETS, an alist of files on the server and the local files to copy there,
+outside of the store, are copied before each deployment."
   (unless (and server os ssh-key)
     (error "hetzner-guix-system: #:server, #:os and #:ssh-key are required"
            resource-name))
@@ -57,4 +60,5 @@ OS is deployed with 'guix deploy' whenever it, or the Guix in use, changes."
                      (ssh-key . ,ssh-key)
                      (identity . ,identity)
                      (os . ,os)
-                     (configuration . ,(configuration-hash os)))))
+                     (configuration . ,(configuration-hash os))
+                     ,@(secrets-prop secrets))))

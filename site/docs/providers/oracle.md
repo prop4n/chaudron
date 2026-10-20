@@ -172,6 +172,7 @@ System image: an [image](#oracle-image) imported from the QCOW2 file of
 | `#:os` | required | a file whose last expression is an operating system |
 | `#:identity` | `"~/.ssh/id_ed25519"` | the private key letting chaudron in as root |
 | `#:build-locally?` | `#f` | build the system here and send it, rather than on the instance |
+| `#:secrets` | `'()` | files to copy to the instance, outside of the store, as [on Hetzner](/docs/guix-system/#secrets) |
 
 The image must let `#:identity` in as root, and trust this machine's Guix
 signing key. The system is deployed again whenever the file, or the Guix
