@@ -1,5 +1,5 @@
 title: A Worker on a schedule
-order: 13
+order: 14
 description: Code run by Cloudflare every ten minutes, keeping what it finds in KV.
 ---
 
