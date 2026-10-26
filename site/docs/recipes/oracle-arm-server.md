@@ -7,6 +7,13 @@ Oracle's free tier includes Arm instances, `VM.Standard.A1.Flex`, up to 4
 OCPUs and 24 GB in all. This recipe makes one, with 1 OCPU and 6 GB, in a
 network of its own, and lets you in over SSH.
 
+```prereqs
+Time: 5 minutes
+Accounts: Oracle Cloud
+Cost: nothing: the instance is in Oracle's free tier
+You get: an Arm instance you reach over SSH
+```
+
 > [!NOTE]
 > Tested on Oracle Cloud, in `eu-paris-1`: about thirty seconds until the
 > instance runs, a minute more until SSH answers.

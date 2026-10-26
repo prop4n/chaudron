@@ -7,6 +7,13 @@ A server at Oracle and its name at Cloudflare are two providers, and two
 consoles. Here they are one program: the address Oracle gives the instance
 is passed to the DNS record like any other value.
 
+```prereqs
+Time: 5 minutes
+Accounts: Oracle Cloud, and Cloudflare with a domain on it
+Cost: nothing: Oracle's free tier and Cloudflare's free plan
+You get: an Oracle instance under a name of yours
+```
+
 > [!NOTE]
 > Checked with a dry run. The instance and the network were tested on
 > Oracle Cloud, and the DNS record on Cloudflare, in the other recipes.

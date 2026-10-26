@@ -8,6 +8,14 @@ bucket. So the whole pipeline is a program: build the image of a minimal
 Guix System, send it, import it, start an instance from it, then deploy
 the real system with `guix deploy`, as often as you like.
 
+```prereqs
+Time: about 30 minutes the first time: building and importing the image
+Accounts: Oracle Cloud
+Also needs: Guix, with QEMU to build Arm images, `ssh`, and a Guix signing key
+Cost: the instance is in Oracle's free tier; the image and its bucket use some storage
+You get: an Arm instance running Guix System, deployed with `guix deploy`
+```
+
 > [!NOTE]
 > Tested on Oracle Cloud with a `VM.Standard.A1.Flex` instance. Building the
 > image takes about twelve minutes the first time, importing it about

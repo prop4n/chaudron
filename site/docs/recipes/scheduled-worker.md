@@ -7,6 +7,13 @@ A Worker can run at set times, without a server: here it checks a site
 every ten minutes, keeps the result in a KV namespace, and shows the last
 one at its address.
 
+```prereqs
+Time: 5 minutes
+Accounts: Cloudflare
+Cost: nothing within the free plan
+You get: a Worker checking a site every ten minutes
+```
+
 > [!NOTE]
 > Checked with a dry run. Schedules and KV bindings were tested on
 > Cloudflare, see [An API on Workers](/docs/workers-api/).

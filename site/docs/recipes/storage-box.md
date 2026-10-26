@@ -8,6 +8,14 @@ is a terabyte for the price of a few volume gigabytes, reached over the
 network. Here a Guix System server mounts one on `/mnt/storage-box` with
 sshfs, using a key that chaudron copies to the server outside of the store.
 
+```prereqs
+Time: 15 minutes, most of it waiting for Guix System to install
+Accounts: Hetzner Cloud
+Also needs: `guix`, `ssh`, and a Guix signing key
+Cost: a few cents an hour for the server, and a few euros a month for the Storage Box
+You get: a 1 TB Storage Box mounted on a Guix System server
+```
+
 > [!NOTE]
 > Checked with a dry run, and the system with `guix system build`.
 

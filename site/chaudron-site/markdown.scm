@@ -9,6 +9,8 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
+  #:use-module (syntax-highlight)
+  #:use-module (syntax-highlight scheme)
   #:export (sxml-text
             annotate-headings))
 
@@ -56,8 +58,8 @@
 (define (code-block info text)
   "A block of code, in a frame titled with the file name given after its
 language (```scheme deploy.scm), or else with the language.  A ```project
-block is the tree of a project instead, and a ```mermaid block a diagram,
-drawn by assets/docs.js."
+block is the tree of a project instead, an ```explain block code explained
+part by part, and a ```mermaid block a diagram, drawn by assets/docs.js."
   (let* ((text (string-trim-right text #\newline))
          (words (string-tokenize info))
          (language (if (null? words) "" (car words)))
@@ -65,6 +67,10 @@ drawn by assets/docs.js."
     (cond
      ((string=? language "project")
       (project text))
+     ((string=? language "explain")
+      (explain title text))
+     ((string=? language "prereqs")
+      (prereqs text))
      ((string=? language "mermaid")
       ;; Without JavaScript, the text of the diagram is shown.
       `(figure (@ (class "schema")) (pre (@ (class "mermaid")) ,text)))
@@ -75,6 +81,95 @@ drawn by assets/docs.js."
                    ("output" (output-lines text))
                    ((or "sh" "shell") (shell-lines text))
                    (_ `(pre (code ,text))))))))))
+
+;; What a tutorial asks and gives: lines of "Key: value", such as
+;; "Cost: nothing", shown before it starts.
+
+(define (prereqs text)
+  `(aside (@ (class "prereqs"))
+          (p (@ (class "prereqs-title")) "Before you start")
+          (dl ,@(append-map
+                 (lambda (line)
+                   (match (string-index line #\:)
+                     (#f '())
+                     (colon
+                      `((dt ,(string-trim-both (substring line 0 colon)))
+                        (dd ,@(match (map transform
+                                          (commonmark->sxml
+                                           (string-trim-both
+                                            (substring line (1+ colon)))))
+                                ;; One paragraph: keep its content only.
+                                ((('p . content)) content)
+                                (other other)))))))
+                 (string-split text #\newline)))))
+
+;; Code explained part by part: the code, then one entry per part, each
+;; starting with a line
+;;
+;;   @ (with-stage "dev"
+;;
+;; giving the part as it is written in the code, followed by what it does.
+;; Clicking the part in the code shows its explanation.
+
+(define (explain-entries text)
+  "Return the code of TEXT, and its parts as (part description) lists."
+  (let*-values (((code rest) (break (cut string-prefix? "@ " <>)
+                                    (string-split text #\newline))))
+    (values (string-trim-right (string-join code "\n") #\newline)
+            (let loop ((lines rest) (parts '()))
+              (match lines
+                (() (reverse parts))
+                ((header . more)
+                 (let-values (((own others) (break (cut string-prefix? "@ " <>)
+                                                   more)))
+                   (loop others
+                         (cons (list (string-drop header 2)
+                                     (string-join own "\n"))
+                               parts)))))))))
+
+(define (explain title text)
+  (let*-values (((code parts) (explain-entries text))
+                ((id) (string-append "explain-"
+                                     (number->string (string-hash text) 36))))
+    (define (input-id n)
+      (string-append id "-" (number->string n)))
+    (define (highlighted text)
+      (highlights->sxml (highlight lex-scheme text)))
+    (define (code-with-parts)
+      ;; The code, each part in it, found in order, made a label.
+      (let loop ((position 0) (parts parts) (n 0) (out '()))
+        (match parts
+          (() (reverse (append (reverse (highlighted (substring code position)))
+                               out)))
+          (((part _) . rest)
+           (let ((start (string-contains code part position)))
+             (unless start
+               (error "explained part not found in the code" part))
+             (loop (+ start (string-length part)) rest (1+ n)
+                   (cons `(label (@ (for ,(input-id n))
+                                    (class ,(format #f "explain-part explain-part-~a"
+                                                    (1+ n))))
+                                 ,@(highlighted part))
+                         (append (reverse (highlighted
+                                           (substring code position start)))
+                                 out))))))))
+    `(div (@ (class "explain"))
+          ,@(map (lambda (n)
+                   `(input (@ (type "radio") (class "explain-input")
+                              (name ,id) (id ,(input-id n))
+                              ,@(if (zero? n) '((checked "checked")) '()))))
+                 (iota (length parts)))
+          ,(pot (if (string=? title "explain") "example" title)
+                (list `(pre (@ (class "code")) (code ,@(code-with-parts)))))
+          (p (@ (class "explain-hint")) "Click a part of the code to see what it does.")
+          (div (@ (class "explain-notes"))
+               ,@(map (match-lambda
+                        ((part description)
+                         `(div (@ (class "explain-note"))
+                               (p (@ (class "explain-label")) (code ,part))
+                               ,@(map transform
+                                      (commonmark->sxml description)))))
+                      parts)))))
 
 ;; The tree of a project: one entry per file, each starting with a line
 ;;

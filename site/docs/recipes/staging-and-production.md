@@ -6,6 +6,13 @@ description: The same code for two environments, sharing one SSH key.
 One procedure describes an environment; calling it with two stage names
 makes two independent copies, of different sizes.
 
+```prereqs
+Time: 5 minutes
+Accounts: Hetzner Cloud
+Cost: a few cents an hour while the servers run
+You get: two environments of different sizes, from one procedure
+```
+
 > [!NOTE]
 > Tested on Hetzner Cloud.
 

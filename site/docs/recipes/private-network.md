@@ -7,6 +7,13 @@ The web server is reached from the Internet; the database only from the web
 server, over a private network. Each server has a firewall for its public
 address, and an address on the network.
 
+```prereqs
+Time: 5 minutes
+Accounts: Hetzner Cloud
+Cost: a few cents an hour while the servers run
+You get: a web server and a database talking over a private network
+```
+
 > [!NOTE]
 > Checked with a dry run.
 

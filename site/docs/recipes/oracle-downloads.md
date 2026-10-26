@@ -8,6 +8,13 @@ archives, images, datasets. Here, each file of `releases/` becomes an
 object, with a loop: add a file and run the program, it is sent; remove it,
 it is deleted.
 
+```prereqs
+Time: 5 minutes
+Accounts: Oracle Cloud
+Cost: the storage of your files, free within Oracle's free tier
+You get: a public bucket, with one object per file of a directory
+```
+
 > [!NOTE]
 > Checked with a dry run. Public buckets, and files sent and sent again,
 > were tested on Oracle Cloud.

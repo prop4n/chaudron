@@ -7,6 +7,13 @@ A small API, and a page, served by one Worker with no server: it counts
 visits in a KV namespace, records each in a D1 database, and cleans old
 records every night.
 
+```prereqs
+Time: 10 minutes
+Accounts: Cloudflare
+Cost: nothing within the free plan
+You get: an API and a page on a Worker, with KV, D1, and a nightly cleanup
+```
+
 > [!NOTE]
 > Tested on Cloudflare. Workers, KV and D1 are free within the limits of
 > the free plan.

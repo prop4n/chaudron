@@ -7,6 +7,13 @@ A Cloudflare Worker serves the files of a directory, at a domain of yours,
 with HTTPS. There is no server to keep up to date, and each change of the
 site publishes only the files that changed.
 
+```prereqs
+Time: 5 minutes
+Accounts: Cloudflare, with a domain on it
+Cost: nothing on the free plan
+You get: a static site served over HTTPS at your domain, no server to maintain
+```
+
 > [!NOTE]
 > Tested on Cloudflare with this very site: deployed in about twelve
 > seconds, served over HTTPS a few seconds later.

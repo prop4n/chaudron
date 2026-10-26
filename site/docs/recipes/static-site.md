@@ -7,6 +7,14 @@ A server, Guix System installed on it, nginx serving a directory of files,
 and a Cloudflare record pointing to it. This is how chaudron's own site
 was tested.
 
+```prereqs
+Time: 15 minutes, most of it waiting for Guix System to install
+Accounts: Hetzner Cloud, and Cloudflare with a domain on it
+Also needs: `guix`, `ssh`, and a Guix signing key
+Cost: a few cents an hour while the server runs
+You get: a site served by nginx on Guix System, at your domain
+```
+
 > [!NOTE]
 > Tested on Hetzner Cloud and Cloudflare: about eight minutes from nothing
 > to the site answering, most of it installing Guix System.

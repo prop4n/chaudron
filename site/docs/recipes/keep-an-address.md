@@ -7,6 +7,13 @@ Some changes replace a server: a new image, a new location. By default its
 replacement gets a new address, and whatever pointed to the old one breaks.
 Give the server a primary IP, and the address stays.
 
+```prereqs
+Time: 5 minutes
+Accounts: Hetzner Cloud
+Cost: a few cents an hour while it runs
+You get: a server replaced without changing its address
+```
+
 > [!NOTE]
 > Tested on Hetzner Cloud.
 

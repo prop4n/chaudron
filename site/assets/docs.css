@@ -623,3 +623,103 @@
   .schema-box-outside { border-image-source: url("/assets/frames/brew-dark.svg"); color: var(--iron); }
   .schema-box-outside .schema-detail { color: var(--iron); }
 }
+
+/* Code explained part by part: radio buttons choose the part, a label in
+   the code, whose explanation is shown below it. */
+
+.explain { margin: 1.5rem 0; }
+
+.explain-input { position: absolute; opacity: 0; pointer-events: none; }
+
+.explain-part {
+  cursor: pointer;
+  border-bottom: var(--px) dotted var(--iron-muted);
+}
+
+.explain-part:hover { background: var(--iron-rim); }
+
+.explain-input:nth-of-type(1):checked ~ .pot .explain-part-1,
+.explain-input:nth-of-type(2):checked ~ .pot .explain-part-2,
+.explain-input:nth-of-type(3):checked ~ .pot .explain-part-3,
+.explain-input:nth-of-type(4):checked ~ .pot .explain-part-4,
+.explain-input:nth-of-type(5):checked ~ .pot .explain-part-5,
+.explain-input:nth-of-type(6):checked ~ .pot .explain-part-6,
+.explain-input:nth-of-type(7):checked ~ .pot .explain-part-7,
+.explain-input:nth-of-type(8):checked ~ .pot .explain-part-8 {
+  background: var(--iron-rim);
+  border-bottom: var(--px) solid var(--brew);
+}
+
+.explain-input:nth-of-type(1):focus-visible ~ .pot .explain-part-1,
+.explain-input:nth-of-type(2):focus-visible ~ .pot .explain-part-2,
+.explain-input:nth-of-type(3):focus-visible ~ .pot .explain-part-3,
+.explain-input:nth-of-type(4):focus-visible ~ .pot .explain-part-4,
+.explain-input:nth-of-type(5):focus-visible ~ .pot .explain-part-5,
+.explain-input:nth-of-type(6):focus-visible ~ .pot .explain-part-6,
+.explain-input:nth-of-type(7):focus-visible ~ .pot .explain-part-7,
+.explain-input:nth-of-type(8):focus-visible ~ .pot .explain-part-8 {
+  outline: var(--px) solid var(--brew);
+}
+
+.explain-hint {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.explain-notes {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border-left: calc(2 * var(--px)) solid var(--brew-deep);
+  background: var(--rule);
+}
+
+.explain-note { display: none; }
+
+.explain-note > :last-child { margin-bottom: 0; }
+
+.explain-label { margin: 0 0 0.4rem; font-weight: 700; }
+
+.explain-input:nth-of-type(1):checked ~ .explain-notes .explain-note:nth-child(1),
+.explain-input:nth-of-type(2):checked ~ .explain-notes .explain-note:nth-child(2),
+.explain-input:nth-of-type(3):checked ~ .explain-notes .explain-note:nth-child(3),
+.explain-input:nth-of-type(4):checked ~ .explain-notes .explain-note:nth-child(4),
+.explain-input:nth-of-type(5):checked ~ .explain-notes .explain-note:nth-child(5),
+.explain-input:nth-of-type(6):checked ~ .explain-notes .explain-note:nth-child(6),
+.explain-input:nth-of-type(7):checked ~ .explain-notes .explain-note:nth-child(7),
+.explain-input:nth-of-type(8):checked ~ .explain-notes .explain-note:nth-child(8) {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  .explain-notes { background: #1f1f2e; }
+}
+
+/* What a tutorial asks and gives, before it starts. */
+
+.prereqs {
+  margin: 1.5rem 0;
+  padding: 0.9rem 1.2rem;
+  border: var(--px) solid var(--rule);
+}
+
+.prereqs-title {
+  margin: 0 0 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.prereqs dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 1.25rem;
+  margin: 0;
+}
+
+.prereqs dt { font-weight: 700; }
+
+.prereqs dd { margin: 0; }

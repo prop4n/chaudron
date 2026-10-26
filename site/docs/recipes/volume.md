@@ -7,6 +7,13 @@ A server's disk goes with the server: replace it, by changing its image or
 its location, and the disk is gone. A volume is a disk of its own, given to
 the server and mounted under `/mnt`; it outlives the server.
 
+```prereqs
+Time: 5 minutes
+Accounts: Hetzner Cloud
+Cost: a few cents an hour for the server, and the volume by the gigabyte
+You get: data kept on a volume, apart from the server's disk
+```
+
 > [!NOTE]
 > Checked with a dry run.
 

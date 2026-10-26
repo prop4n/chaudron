@@ -1,10 +1,17 @@
 title: Your first deployment
-order: 3
+order: 4
 description: A server at Hetzner, from nothing to ssh, then gone again.
 ---
 
 This guide creates a small server at Hetzner Cloud, reachable over SSH,
 then deletes it. You need a Hetzner account and an SSH key.
+
+```prereqs
+Time: 10 minutes
+Accounts: Hetzner Cloud, and an SSH key
+Cost: a few cents: the server is deleted at the end
+You get: a server you reach over SSH, resized, then deleted
+```
 
 > [!CAUTION]
 > Servers cost money while they exist. The one made here costs a few cents

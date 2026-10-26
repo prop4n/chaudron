@@ -7,6 +7,13 @@ Two servers run nginx, set up by cloud-init. A load balancer shares the
 traffic between them over a private network; the servers themselves only
 accept SSH from outside.
 
+```prereqs
+Time: 5 minutes
+Accounts: Hetzner Cloud
+Cost: a few cents an hour while it runs: two servers and a load balancer
+You get: two nginx servers sharing the traffic of one address
+```
+
 > [!NOTE]
 > Tested on Hetzner Cloud. It costs a few cents an hour while it runs.
 
