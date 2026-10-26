@@ -489,6 +489,55 @@ h1 {
   white-space: nowrap;
 }
 
+/* The three steps beside the hero: describe, run, keep in sync. */
+
+.steps-hero {
+  display: grid;
+  gap: 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step-head { display: flex; align-items: center; gap: 0.6rem; }
+
+.step-head h3 { font-size: 1.05rem; }
+
+.step-number {
+  display: inline-grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  background: var(--brew-deep);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.step > p {
+  margin: 0.3rem 0 0.55rem 2.2rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.step .pot { margin-left: 2.2rem; font-size: 0.78rem; }
+
+.step .pot pre { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+
+.pot .dim { color: var(--iron-muted); }
+
+/* The real-world example: the text, then the project and its diagram. */
+
+.example-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  gap: 3rem;
+  align-items: start;
+}
+
+.example-grid > div > p { margin: 1rem 0 0; color: var(--muted); }
+
 .hero-note {
   margin: 1.5rem 0 0;
   max-width: 30rem;
@@ -630,7 +679,7 @@ h1 {
 
 @media (max-width: 56rem) {
   .hero { padding: 2rem 0 3rem; }
-  .hero-grid, .split, .specimens { grid-template-columns: minmax(0, 1fr); }
+  .hero-grid, .example-grid, .split, .specimens { grid-template-columns: minmax(0, 1fr); }
   .explorer-panels { height: auto; }
   .diagram, .diagram-group { flex-direction: column; align-items: stretch; }
   .diagram-arrow {

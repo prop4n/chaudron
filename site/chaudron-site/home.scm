@@ -148,6 +148,20 @@ as groups, the values passed between resources on the arrows."
              (span (@ (class "diagram-group-name")) "Cloudflare")
              ,(box "DNS record" "www.example.com"))))
 
+(define %step-code "\
+(with-stage \"dev\"
+  (hetzner-server \"web\"
+    #:type \"cx23\"
+    #:location \"fsn1\"))")
+
+(define (step number title text body)
+  `(li (@ (class "step"))
+       (div (@ (class "step-head"))
+            (span (@ (class "step-number")) ,number)
+            (h3 ,title))
+       (p ,@text)
+       ,body))
+
 (define (hero)
   `(section (@ (class "hero"))
             ,(brew)
@@ -156,23 +170,55 @@ as groups, the values passed between resources on the arrows."
                       (img (@ (class "hero-logo") (src "/assets/cauldron.png")
                               (alt "A pixel-art cauldron, bubbling green")
                               (width "96") (height "96")))
-                      (h1 "The cloud and the machines, in one program.")
+                      (h1 "Your infrastructure, written in Guile.")
                       (p (@ (class "lede"))
-                         "Servers at Hetzner or Oracle, records at Cloudflare, "
-                         "and the Guix System they run, declared in plain "
-                         "Guile, in the same codebase. Run the program: what "
-                         "is missing is created, what drifted is put back, "
-                         "and the system is deployed.")
+                         "Manage cloud servers, DNS records and whole operating "
+                         "systems with ordinary Scheme code. No new "
+                         "configuration language to learn.")
                       (div (@ (class "actions"))
-                           (a (@ (class "button") (href "/docs/installation/"))
-                              "Try it")
-                           (a (@ (class "button button-quiet") (href "/docs/"))
-                              "Read the docs"))
+                           (a (@ (class "button") (href "/docs/learn/"))
+                              "Get started")
+                           (a (@ (class "button button-quiet") (href "#example"))
+                              "See how it works"))
                       (p (@ (class "hero-note"))
-                         "This program, run once: about eight minutes later, "
-                         (code "www.example.com") " answers from a fresh Guix "
-                         "System. "
-                         (a (@ (href "/docs/static-site/")) "The whole recipe")))
+                         "New to Scheme or Guix? "
+                         (a (@ (href "/docs/learn/"))
+                            "Learn chaudron in 10 minutes")
+                         ", with no cloud account."))
+                 (ol (@ (class "steps-hero"))
+                     ,(step "1" "Describe a server"
+                            '("Resources are calls, in an environment called a stage.")
+                            (pot "deploy.scm" (list (scheme %step-code))))
+                     ,(step "2" "Run your program"
+                            '("chaudron checks what exists, and creates or updates "
+                              "what you described.")
+                            (pot "shell"
+                                 (list `(pre (code (span (@ (class "prompt")) "$ ")
+                                                   "guile deploy.scm\n"
+                                                   (span (@ (class "dim")) "chaudron: ")
+                                                   "create hetzner-server/web")))))
+                     ,(step "3" "Keep it in sync"
+                            '("Run it again: nothing changes. Change "
+                              (code "#:type") ", and the server is resized.")
+                            (pot "shell"
+                                 (list `(pre (code (span (@ (class "prompt")) "$ ")
+                                                   "guile deploy.scm\n"
+                                                   (span (@ (class "dim")) "chaudron: ")
+                                                   "update hetzner-server/web (type)")))))))))
+
+(define (example-section)
+  `(section (@ (id "example") (class "band"))
+            (div (@ (class "wrap example-grid"))
+                 (div
+                  (h2 "A real-world example")
+                  (p "A server at Hetzner, the whole system that runs on it, "
+                     "and its address at Cloudflare: two providers and an "
+                     "operating system, in one program, with no glue code "
+                     "between them.")
+                  (p "Run once, about eight minutes later "
+                     (code "www.example.com") " serves " (code "public/")
+                     " from a fresh Guix System.")
+                  (p (a (@ (href "/docs/static-site/")) "The whole recipe")))
                  (div (@ (class "hero-example"))
                       ,(explorer)
                       ,(diagram)))))
@@ -330,6 +376,7 @@ as groups, the values passed between resources on the arrows."
                                 #:action '("Docs" . "/docs/"))
                         `(main
                           ,(hero)
+                          ,(example-section)
                           ,(points-section)
                           ,(run-section)
                           ,(open-section)

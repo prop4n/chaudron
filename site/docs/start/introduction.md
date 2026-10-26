@@ -1,11 +1,28 @@
-title: Introduction
+title: What is chaudron?
 order: 1
-description: What chaudron is, and how a deployment looks.
+description: Infrastructure written as a program: what that means, and where to start.
 ---
 
-chaudron is a Guile library to describe infrastructure, servers, DNS
-records, a whole Guix System, as a plain Scheme program, and to deploy it by
-running that program.
+chaudron lets you write your infrastructure as a program: the servers you
+rent, their DNS records, and the system that runs on them. You run the
+program, and chaudron makes the real infrastructure match it. This is
+called infrastructure as code.
+
+You do not need to know Scheme, the language of the programs, nor Guix, to
+start: [Learn chaudron in 10 minutes](/docs/learn/) shows the little you
+need, and runs a first program without any cloud account.
+
+## By hand, then with chaudron
+
+Putting a website online by hand looks like this:
+
+1. In the Hetzner console, create a server, and copy its address.
+2. In the Cloudflare console, create a DNS record, and paste the address.
+3. Log in to the server, install nginx, and edit its configuration.
+4. Do it all again for a staging copy, a little differently each time.
+
+A few months later, nobody quite knows what is running, nor how to make it
+again. With chaudron, the same infrastructure is a file:
 
 ```scheme deploy.scm
 (use-modules (chaudron)
@@ -13,29 +30,29 @@ running that program.
              (chaudron cloudflare))
 
 (with-stage "prod"
-  (define forge
-    (hetzner-server "forge" #:type "cx23" #:location "fsn1"))
+  (define server
+    (hetzner-server "web" #:type "cx23" #:location "fsn1"))
 
-  (cloudflare-dns-record "git"
+  (cloudflare-dns-record "www"
                          #:zone "example.com"
-                         #:content (output forge 'ipv4)))
+                         #:content (output server 'ipv4)))
 ```
 
 ```output
-chaudron: create hetzner-server/forge
-chaudron: create cloudflare-dns-record/git
+chaudron: create hetzner-server/web
+chaudron: create cloudflare-dns-record/www
 ```
 
-## No CLI, no plan to apply
+The address Hetzner gives the server goes to the DNS record as a plain
+value: nothing to copy by hand. And the file says what exists:
 
-There is no command to learn and no separate plan step. Each resource call,
-like `hetzner-server`, looks at the real resource and makes it match what
-the program says, right away. Then it returns the resource, whose outputs,
-such as its address, can be given to the next calls.
+- run it again, and nothing changes;
+- change the server type, and it is resized;
+- remove the record from the file, and it is deleted;
+- resize the server by hand in the console, and the next run puts it back.
 
-Since a deployment is a program, the whole of Guile is at hand: procedures
-to declare several similar servers, loops, modules shared between projects,
-conditions on the environment.
+With [Guix System](/docs/guix-system/), even the system of the server,
+nginx and its configuration, is part of the program.
 
 ## What it manages
 
@@ -50,13 +67,21 @@ conditions on the environment.
 You can [write your own provider](/docs/writing-a-provider/): it is a
 module with a few procedures.
 
-## Where to go next
+## Choose your path
 
-- [Installation](/docs/installation/): what chaudron needs, with or without
-  Guix.
-- [Your first deployment](/docs/first-deployment/): a server at Hetzner, from
-  nothing to `ssh`.
-- [Stages](/docs/stages/) and [Resources](/docs/resources/): how a run works.
+**New to all this.** [Learn chaudron in 10 minutes](/docs/learn/): the
+Scheme you need, a first program explained part by part, and a dry run
+with no account. The [Glossary](/docs/glossary/) explains the words.
+
+**Ready to deploy something real.** [Installation](/docs/installation/)
+sets up a project, then [Your first deployment](/docs/first-deployment/)
+creates a server at Hetzner, changes it, and deletes it, for a few cents.
+
+**Building complete infrastructure.** [Guix System](/docs/guix-system/)
+for the machines, [Stages](/docs/stages/) for several environments, the
+[Recipes](/docs/load-balancer/) for complete programs, and
+[Writing a provider](/docs/writing-a-provider/) for the services chaudron
+does not know yet.
 
 > [!NOTE]
 > chaudron is young: its interface may still change.

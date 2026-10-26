@@ -1,5 +1,5 @@
 title: Installation
-order: 2
+order: 3
 description: Create a project with chaudron, step by step.
 ---
 
