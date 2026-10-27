@@ -64,6 +64,7 @@
        (hetzner-guix-system "forge" #:server server #:os os-file
                             #:ssh-key 7 #:identity "/keys/id")))))
 
+(define derivation '(0 . "/gnu/store/abc-system.drv\n"))
 (define describe '(0 . "(list (channel (name 'guix) (commit \"abc\")))"))
 (define (hashed value) `(0 . ,(string-append value "\n")))
 (define ok '(0 . #f))
@@ -78,7 +79,7 @@
 (parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
 
   (test-equal "installs Guix System, then deploys"
-    '((("guix" "describe") ("guix" "hash")
+    '((("guix" "system") ("guix" "describe") ("guix" "hash")
        ("ssh" "test -e /run/current-system")
        ("ssh" "true") ("ssh" "true") ("ssh" "bash" "-s")
        ("ssh" "test -e /run/current-system")
@@ -86,7 +87,7 @@
       ((POST "/servers/42/actions/enable_rescue")
        (POST "/servers/42/actions/reset")
        (POST "/servers/42/actions/reboot")))
-    (with-commands (describe (hashed "h1") not-guix
+    (with-commands (derivation describe (hashed "h1") not-guix
                     '(255 . #f) ok ok ok   ;not up yet, then up
                     keyscan ok)
                    (list (done 1) (done 2) (done 3))
@@ -113,27 +114,27 @@
          (string-contains deployment "/etc/guix/signing-key.pub")))
 
   (test-equal "does nothing when neither the configuration nor Guix changed"
-    '(("guix" "describe") ("guix" "hash"))
-    (with-commands (describe (hashed "h1")) '()
+    '(("guix" "system") ("guix" "describe") ("guix" "hash"))
+    (with-commands (derivation describe (hashed "h1")) '()
       (guix-system)
       commands))
 
   (test-equal "deploys again when they changed, once the server is up"
-    '(("guix" "describe") ("guix" "hash")
+    '(("guix" "system") ("guix" "describe") ("guix" "hash")
       ("ssh" "test -e /run/current-system") ("ssh" "test -e /run/current-system")
       ("guix" "deploy"))
-    (with-commands (describe (hashed "h2") '(255 . #f) ok ok) '()
+    (with-commands (derivation describe (hashed "h2") '(255 . #f) ok ok) '()
       (guix-system)
       commands))
 
   (test-equal "only says it would deploy during a dry run"
-    '(("guix" "describe") ("guix" "hash"))
-    (with-commands (describe (hashed "h3")) '()
+    '(("guix" "system") ("guix" "describe") ("guix" "hash"))
+    (with-commands (derivation describe (hashed "h3")) '()
       (guix-system #:dry-run? #t)
       commands))
 
   (test-assert "installs an EFI system for other types"
-    (with-commands (describe (hashed "h3") not-guix ok ok ok keyscan ok)
+    (with-commands (derivation describe (hashed "h3") not-guix ok ok ok keyscan ok)
                    (list (done 1) (done 2) (done 3))
       (guix-system #:server (make-resource 'hetzner-server "forge"
                                            '((type . "cpx22"))
@@ -143,10 +144,10 @@
 
 (parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
   (test-equal "does not install Guix System again if it already runs"
-    '(("guix" "describe") ("guix" "hash")
+    '(("guix" "system") ("guix" "describe") ("guix" "hash")
       ("ssh" "test -e /run/current-system")
       ("ssh-keyscan" "-t") ("guix" "deploy"))
-    (with-commands (describe (hashed "h1") ok keyscan ok) '()
+    (with-commands (derivation describe (hashed "h1") ok keyscan ok) '()
       (guix-system)
       commands)))
 
@@ -155,7 +156,7 @@
     (list (basename os-file) "~/.ssh/id_ed25519" #t #t)
     (let ((cwd (getcwd)))
       (chdir (dirname os-file))
-      (with-commands (describe (hashed "h1") ok keyscan ok) '()
+      (with-commands (derivation describe (hashed "h1") ok keyscan ok) '()
         (quietly
          (lambda ()
            (with-stage "paths"
@@ -200,13 +201,13 @@
 
 (parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
   (test-assert "copies secrets before deploying"
-    (with-commands (describe (hashed "h1") ok keyscan ok ok) '()
+    (with-commands (derivation describe (hashed "h1") ok keyscan ok ok) '()
       (with-secret)
       (and (equal? '(("ssh" "test -e /run/current-system")
                      ("ssh-keyscan" "-t"))
-                   (list-head (cddr commands) 2))
-           (copies? (list-ref commands 4))
-           (equal? '("guix" "deploy") (list-ref commands 5))
+                   (list-head (cdddr commands) 2))
+           (copies? (list-ref commands 5))
+           (equal? '("guix" "deploy") (list-ref commands 6))
            (equal? "KEY 1" script))))
 
   (test-assert "keeps a digest of secrets, not their contents"
@@ -218,18 +219,18 @@
            (not (string-contains state "KEY 1")))))
 
   (test-equal "does nothing when no secret changed"
-    '(("guix" "describe") ("guix" "hash"))
-    (with-commands (describe (hashed "h1")) '()
+    '(("guix" "system") ("guix" "describe") ("guix" "hash"))
+    (with-commands (derivation describe (hashed "h1")) '()
       (with-secret)
       commands))
 
   (test-assert "copies them and deploys again when one changed"
     (begin
       (call-with-output-file secret-file (cut display "KEY 2" <>))
-      (with-commands (describe (hashed "h1") ok ok ok) '()
+      (with-commands (derivation describe (hashed "h1") ok ok ok) '()
         (with-secret)
-        (and (copies? (list-ref commands 3))
-             (equal? '("guix" "deploy") (list-ref commands 4))
+        (and (copies? (list-ref commands 4))
+             (equal? '("guix" "deploy") (list-ref commands 5))
              (equal? "KEY 2" script))))))
 
 (define failures (test-runner-fail-count (test-runner-current)))

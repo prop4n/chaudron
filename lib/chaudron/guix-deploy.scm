@@ -125,11 +125,16 @@ keeps them as written, so that it fits any machine."
        props))
 
 (define (configuration-hash os-file)
-  "Return a hash of OS-FILE and of the Guix in use: deploying again is needed
-when either changes."
+  "Return a hash of the system of OS-FILE and of the Guix in use: deploying
+again is needed when either changes."
   (call-with-temporary-file
    (lambda (file port)
-     (display (call-with-input-file os-file get-string-all) port)
+     ;; The derivation rather than the text of OS-FILE: it also changes with
+     ;; the modules and files OS-FILE uses.  Without grafts, computing it
+     ;; builds nothing; the Guix in use, below, covers the grafts.
+     (display (invoke "guix" (list "system" "build" "--no-grafts" "-d" os-file)
+                      #:capture? #t)
+              port)
      (display (invoke "guix" '("describe" "--format=channels") #:capture? #t)
               port)
      (close-port port)

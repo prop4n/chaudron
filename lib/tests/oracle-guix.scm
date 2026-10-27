@@ -62,6 +62,7 @@
        (oracle-guix-system "web" #:instance (instance #:shape shape)
                            #:os os-file #:identity "/keys/id")))))
 
+(define derivation '(0 . "/gnu/store/abc-system.drv\n"))
 (define describe '(0 . "(list (channel (name 'guix) (commit \"abc\")))"))
 (define (hashed value) `(0 . ,(string-append value "\n")))
 (define ok '(0 . #f))
@@ -72,11 +73,11 @@
 (parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
 
   (test-equal "waits for the instance to run Guix System, then deploys"
-    '(("guix" "describe") ("guix" "hash")
+    '(("guix" "system") ("guix" "describe") ("guix" "hash")
       ("ssh" "test -e /run/current-system")
       ("ssh" "test -e /run/current-system")
       ("ssh-keyscan" "-t") ("guix" "deploy"))
-    (with-commands (describe (hashed "h1") '(255 . #f) ok keyscan ok)
+    (with-commands (derivation describe (hashed "h1") '(255 . #f) ok keyscan ok)
       (guix-system)
       commands))
 
@@ -90,22 +91,22 @@
          (string-contains deployment "(build-locally? #f)")))
 
   (test-equal "does nothing when neither the configuration nor Guix changed"
-    '(("guix" "describe") ("guix" "hash"))
-    (with-commands (describe (hashed "h1"))
+    '(("guix" "system") ("guix" "describe") ("guix" "hash"))
+    (with-commands (derivation describe (hashed "h1"))
       (guix-system)
       commands))
 
   (test-equal "deploys again when they changed"
-    '(("guix" "describe") ("guix" "hash")
+    '(("guix" "system") ("guix" "describe") ("guix" "hash")
       ("ssh" "test -e /run/current-system")
       ("guix" "deploy"))
-    (with-commands (describe (hashed "h2") ok ok)
+    (with-commands (derivation describe (hashed "h2") ok ok)
       (guix-system)
       commands)))
 
 (parameterize ((state-directory (mkdtemp "/tmp/chaudron-test-XXXXXX")))
   (test-assert "deploys an x86 system to other shapes"
-    (with-commands (describe (hashed "h1") ok keyscan ok)
+    (with-commands (derivation describe (hashed "h1") ok keyscan ok)
       (guix-system #:shape "VM.Standard.E2.1.Micro")
       (string-contains deployment "\"x86_64-linux\""))))
 
